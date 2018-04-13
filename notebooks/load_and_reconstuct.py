@@ -17,7 +17,8 @@ from latent_3d_points.src.in_out import snc_category_to_synth_id, create_dir, Po
 
 from latent_3d_points.src.tf_utils import reset_tf_graph
 
-
+from latent_3d_points.src.IO import write_ply
+import pdb
 # In[2]:
 #
 #
@@ -120,12 +121,13 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 # Train the AE (save output to train_stats.txt) 
 
 # In[1]:
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
+ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
 
-
-buf_size = 1 # Make 'training_stats' file to flush each output line regarding training.
-fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
-train_stats = ae.train(all_pc_data, conf, log_file=fout)
-fout.close()
+# buf_size = 1 # Make 'training_stats' file to flush each output line regarding training.
+# fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
+# train_stats = ae.train(all_pc_data, conf, log_file=fout)
+# fout.close()
 
 
 # Get a batch of reconstuctions and their latent-codes.
@@ -135,6 +137,14 @@ fout.close()
 
 feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
 reconstructions = ae.reconstruct(feed_pc)
+# shape2 = reconstructions[0][2,:,:]
+print "loss : " + str(reconstructions[1])
+write_ply("airplane1.ply",reconstructions[0][1,:,:])
+write_ply("airplane2.ply",reconstructions[0][2,:,:])
+write_ply("airplane3.ply",reconstructions[0][3,:,:])
+write_ply("airplane4.ply",reconstructions[0][4,:,:])
+# pdb.set_trace()
+# print "reconstructed, shape:" + str(reconstructions.shape)
 latent_codes = ae.transform(feed_pc)
 
 
