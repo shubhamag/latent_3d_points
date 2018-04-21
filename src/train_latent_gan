@@ -1,7 +1,11 @@
 import tensorflow as tf
+import numpy as np
+import latent
 
+num_epoch = 100
 
 def discriminator(data, reuse=None, scope='disc'):
+	with tf.variable_scope(scope, reuse=reuse)
 	layer = tf.contrib.layers.fully_connected(data, 256)
 	layer = tf.contrib.layers.fully_connected(layer, 512)
 	layer = tf.contrib.layers.fully_connected(layer, 1, activation=tf.nn.sigmoid)
@@ -13,4 +17,10 @@ def generator(noise, n_output):
 	return layer
 
 def trainGAN():
-	np.loadtext('')
+	latent_vec = np.loadtext('../data/single_class_ae/airplane/airplane_latent.txt')
+	bneck_size = latent_vec.shape[1]
+	latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = bneck_size, noise_dim = 128, discriminator = discriminator, generator = generator, beta=0.9)
+	for i in num_epoch:
+		(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec)
+		print("disc %4f gen %4f duration %f"%(d_loss, g_loss, time))
+	

@@ -47,7 +47,7 @@ class LatentGAN(GAN):
 
             self.opt_d = self.optimizer(learning_rate, beta, self.loss_d, d_params)
             self.opt_g = self.optimizer(learning_rate, beta, self.loss_g, g_params)
-            self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=None)
+            self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
             self.init = tf.global_variables_initializer()
 
             # Launch the session
@@ -59,7 +59,7 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims))
 
-    def _single_epoch_train(self, train_data, batch_size=100, noise_params={mu:0, sigma:1}):
+    def _single_epoch_train(self, train_data, epoch, batch_size=50, noise_params={mu:0, sigma:1}, save_path = '../data/gan_model'):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
@@ -92,7 +92,7 @@ class LatentGAN(GAN):
             raise
         finally:
             is_training(False, session=self.sess)
-
+        self.saver.save(self.sess, save_path, global_step = epoch)
         epoch_loss_d /= n_batches
         epoch_loss_g /= n_batches
         duration = time.time() - start_time
