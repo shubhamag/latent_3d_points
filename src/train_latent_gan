@@ -1,0 +1,16 @@
+import tensorflow as tf
+
+
+def discriminator(data, reuse=None, scope='disc'):
+	layer = tf.contrib.layers.fully_connected(data, 256)
+	layer = tf.contrib.layers.fully_connected(layer, 512)
+	layer = tf.contrib.layers.fully_connected(layer, 1, activation=tf.nn.sigmoid)
+	return layer
+
+def generator(noise, n_output):
+	layer = tf.contrib.layers.fully_connected(noise, 128)
+	layer = tf.contrib.layers.fully_connected(layer, n_output)
+	return layer
+
+def trainGAN():
+	np.loadtext('')
