@@ -109,10 +109,10 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
 
 
-
-latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/'+ str(class_name)+'/' + str(class_name) + "_latent_with_mask.txt"
-
 num_pts_to_mask = 1000
+latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/'+ str(class_name)+'/' + str(class_name) + "_latent_with_" + str(num_pts_to_mask) +"mask.txt"
+
+
 # full_pc,_,_ = all_pc_data.full_epoch_data()
 num_input = all_pc_data.num_examples
 batch_size =int(10)
@@ -127,13 +127,13 @@ for i in range(num_iters):
     lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
 
-# np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
+np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
 
-lv_batch = lv_array[0:10,:]
-
-reconstructions = ae.decode(lv_batch)
-for i in range(4):
-    write_ply("airplane" + str(i) + "_from_" + str(num_pts_to_mask) +"masked_lv.ply", reconstructions[i, :, :])
+# lv_batch = lv_array[0:10,:]
+#
+# reconstructions = ae.decode(lv_batch)
+# for i in range(4):
+#     write_ply("airplane" + str(i) + "_from_" + str(num_pts_to_mask) +"masked_lv.ply", reconstructions[i, :, :])
 
 
 

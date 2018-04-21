@@ -59,13 +59,13 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_gan_model'):
+    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/gan_model'):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
         '''
-        self.saver.restore(self.sess,save_path+'.ckpt')
-        n_examples = train_data.num_examples
+        self.saver.restore(self.sess,save_path+'-99')
+        # n_examples = batch.num_examples
         epoch_loss_l2 = 0.
         epoch_loss_g = 0.
         start_time = time.time()
@@ -81,13 +81,15 @@ class LatentGAN(GAN):
                 epoch_loss_l2 += loss_l2
                 epoch_loss_g += loss_g
 
+            cleaned_vector = self.sess.run(self.generator_out)
             is_training(False, session=self.sess)
+
         except Exception:
             raise
         finally:
             is_training(False, session=self.sess)
-        cleaned_vector = self.generator_out.eval(feed_dict)
-        np.savetxt('cleaned_vector', cleaned_vector)
+
+        np.savetxt('cleaned_vector.txt', cleaned_vector)
         epoch_loss_d /= epoch
         epoch_loss_g /= epoch
         duration = time.time() - start_time

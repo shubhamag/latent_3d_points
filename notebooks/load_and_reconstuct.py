@@ -145,12 +145,12 @@ if(reconstruct_from_latent_vectors == False):
     latent_codes = ae.transform(feed_pc)
 else:
 
-    lv_array  = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane/airplane_latent_with_mask.txt')
-    lv_batch = lv_array[0:10,:]
+    lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/cleaned_vector.txt')
+    lv_batch = lv_array
 
     reconstructions = ae.decode(lv_batch)
-    for i in range(4):
-        write_ply("airplane" + str(i) + "_from_masked_lv.ply", reconstructions[i, :, :])
+    for i in range(6):
+        write_ply("airplane" + str(i) + "_from_cleaned_lv.ply", reconstructions[i, :, :])
 
 
 
