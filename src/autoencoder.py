@@ -104,7 +104,7 @@ class AutoEncoder(Neural_Net):
             else:
                 self.gt = self.x
 
-    def restore_model(self, model_path, epoch, verbose=False):
+    def restore_model(self, model_path, epoch, verbose=True):
         '''Restore all the variables of a saved auto-encoder model.
         '''
         self.saver.restore(self.sess, osp.join(model_path, model_saver_id + '-' + str(int(epoch))))
@@ -113,6 +113,7 @@ class AutoEncoder(Neural_Net):
             warnings.warn('Loaded model\'s epoch doesn\'t match the requested one.')
         else:
             if verbose:
+                print "Restored from :" + osp.join(model_path, model_saver_id + '-' + str(int(epoch)))
                 print('Model restored in epoch {0}.'.format(epoch))
 
     def partial_fit(self, X, GT=None):
