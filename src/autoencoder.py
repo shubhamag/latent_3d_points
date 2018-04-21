@@ -88,13 +88,14 @@ class AutoEncoder(Neural_Net):
     '''Basis class for a Neural Network that implements an Auto-Encoder in TensorFlow.
     '''
 
-    def __init__(self, name, graph, configuration):
+    def __init__(self, name, graph, configuration, batch_size=10):
         Neural_Net.__init__(self, name, graph)
         self.is_denoising = configuration.is_denoising
         self.n_input = configuration.n_input
         self.n_output = configuration.n_output
-        self.mask = tf.placeholder(tf.float32, [None, configuration.n_input[0], 1])
-        configuration.encoder_args['mask': mask]
+        mask_inp = np.ones([batch_size, configuration.n_input[0], 1])
+        self.mask = tf.placeholder_with_default(mask_inp, [None, configuration.n_input[0], 1])
+        configuration.encoder_args['mask']= self.mask
 
         in_shape = [None] + self.n_input
         out_shape = [None] + self.n_output
@@ -148,24 +149,29 @@ class AutoEncoder(Neural_Net):
         else:
             loss = tf.no_op()
 
-        indx = np.random.randint(X.shape[1], shape=X.shape[0])
-        temp = np.zeros(X.shape[:2])
-        temp[[np.arange(X.shape[0]), indx]]=1
-        X_idx = np.sum(X*temp, axis=1, keep_dims=True)
-        X_diff = np.sum(np.square(X_idx - X), axis=2)
-        X_diff_arg = np.argsort(X_diff,axis=1)
-        mask_inp = np.ones(X.shape[:2])
-        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-100:]]]=0
-        mask_inp = np.expand_dims(mask_inp, axis=2)
+
 
         if GT is None:
-            return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.mask: mask_inp})
+            return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X })
         else:
-            return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT, self.mask: mask_inp})
+            return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT})
 
     def transform(self, X):
         '''Transform data by mapping it into the latent space.'''
         return self.sess.run(self.z, feed_dict={self.x: X})
+
+    def transform_with_mask(self,X):
+
+        indx = np.random.randint(X.shape[1], size=X.shape[0])
+        temp = np.zeros(X.shape[:2])
+        temp[[np.arange(X.shape[0]), indx]]=1
+        X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
+        X_diff = np.sum(np.square(X_idx - X), axis=2)
+        X_diff_arg = np.argsort(X_diff,axis=1)
+        mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-100:]]]=0
+        mask_inp = np.expand_dims(mask_inp, axis=2)
+        return self.sess.run(self.z, feed_dict={self.x: X,self.mask: mask_inp})
 
     def interpolate(self, x, y, steps):
         ''' Interpolate between and x and y input vectors in latent space.

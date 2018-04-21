@@ -9,9 +9,9 @@ import warnings
 import tensorflow as tf
 
 
-from general_tools.in_out.basics import create_dir
+from latent_3d_points.src.in_out import create_dir
 
-from .. neural_net import Neural_Net
+from latent_3d_points.src.neural_net import Neural_Net
 
 
 class GAN(Neural_Net):

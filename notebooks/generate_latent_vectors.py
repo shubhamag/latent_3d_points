@@ -136,7 +136,7 @@ ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/'
 
 # In[13]:
 
-latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/'+ str(class_name)+'/' + str(class_name) + "_latent.txt"
+latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/'+ str(class_name)+'/' + str(class_name) + "_latent_with_mask.txt"
 # feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
 
 # full_pc,_,_ = all_pc_data.full_epoch_data()
@@ -149,7 +149,8 @@ print "lv num rows:" + str(array_row_size)
 lv_array = np.zeros([ array_row_size, bneck_size])
 for i in range(num_iters):
     feed_pc, feed_model_names, _ = all_pc_data.next_batch(batch_size)
-    latent_codes = ae.transform(feed_pc)
+    # latent_codes = ae.transform(feed_pc)
+    latent_codes = ae.transform_with_mask(feed_pc)
     lv_array[i*batch_size:i*batch_size+10,:] = latent_codes
 
 

@@ -5,7 +5,7 @@ Created on September 2, 2017
 '''
 import numpy as np
 
-from . encoders_decoders import encoder_with_convs_and_symmetry, decoder_with_fc_only
+from . encoders_decoders import encoder_with_convs_and_symmetry, decoder_with_fc_only,encoder_with_convs_and_masked_symmetry
 
 
 def mlp_architecture_ala_iclr_18(n_pc_points, bneck_size, bneck_post_mlp=False):
@@ -15,6 +15,7 @@ def mlp_architecture_ala_iclr_18(n_pc_points, bneck_size, bneck_post_mlp=False):
         raise ValueError()
 
     encoder = encoder_with_convs_and_symmetry
+    encoder = encoder_with_convs_and_masked_symmetry #comment this when not masking
     decoder = decoder_with_fc_only
 
     n_input = [n_pc_points, 3]

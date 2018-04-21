@@ -9,7 +9,7 @@ import tensorflow as tf
 
 from . gan import GAN
 
-from .. fundamentals.layers import safe_log
+# from .. fundamentals.layers import safe_log
 from tflearn import is_training
 
 
@@ -29,11 +29,11 @@ class LatentGAN(GAN):
             self.gt_data = tf.placeholder(tf.float32, shape=[None] + self.n_output)           # Ground-truth.
 
             with tf.variable_scope('generator'):
-                self.generator_out = self.generator(self.noise, self.n_output, **gen_kwargs)
+                self.generator_out = self.generator(self.noise, self.n_output)
 
             with tf.variable_scope('discriminator') as scope:
-                self.real_prob, self.real_logit = self.discriminator(self.gt_data, scope=scope, **disc_kwargs)
-                self.synthetic_prob, self.synthetic_logit = self.discriminator(self.generator_out, reuse=True, scope=scope, **disc_kwargs)
+                self.real_prob, self.real_logit = self.discriminator(self.gt_data, scope=scope)
+                self.synthetic_prob, self.synthetic_logit = self.discriminator(self.generator_out, reuse=True, scope=scope)
 
             self.loss_d = tf.reduce_mean(-tf.log(self.real_prob) - tf.log(1 - self.synthetic_prob))
             self.loss_g = tf.reduce_mean(-tf.log(self.synthetic_prob))
@@ -59,7 +59,7 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims))
 
-    def _single_epoch_train(self, train_data, epoch, batch_size=50, noise_params={mu:0, sigma:1}, save_path = '../data/gan_model'):
+    def _single_epoch_train(self, train_data, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_gan_model'):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/

@@ -128,7 +128,7 @@ def encoder_with_convs_and_masked_symmetry(in_signal, n_filters=[64, 128, 256, 1
         if verbose:
             print layer
             print 'output size:', np.prod(layer.get_shape().as_list()[1:]), '\n'
-    layer = tf.multiply(mask, layer)
+    layer = tf.multiply(tf.cast(mask,tf.float32), tf.cast(layer,tf.float32))
     if symmetry is not None:
         layer = symmetry(layer, axis=1)
         if verbose:
