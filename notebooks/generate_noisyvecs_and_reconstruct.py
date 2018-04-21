@@ -19,18 +19,9 @@ from latent_3d_points.src.tf_utils import reset_tf_graph
 
 from latent_3d_points.src.IO import write_ply
 import numpy as np
+import math
 import pdb
-# In[2]:
-#
-#
-# get_ipython().run_line_magic('load_ext', 'autoreload')
-# get_ipython().run_line_magic('autoreload', '2')
-# get_ipython().run_line_magic('matplotlib', 'inline')
-#
 
-# Define Basic Parameters
-
-# In[3]:
 
 
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
@@ -110,47 +101,40 @@ conf.held_out_step = 5   # How often to evaluate/print out loss on
 conf.save(osp.join(train_dir, 'configuration'))
 
 
-# Build AE Model.
-
-# In[11]:
-
-
 reset_tf_graph()
 ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 
-# Train the AE (save output to train_stats.txt) 
-
-# In[1]:
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
 ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
 
 
 
-# Get a batch of reconstuctions and their latent-codes.
-reconstruct_from_latent_vectors = True
+latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/'+ str(class_name)+'/' + str(class_name) + "_latent_with_mask.txt"
 
-if(reconstruct_from_latent_vectors == False):
-    feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
-    reconstructions = ae.reconstruct(feed_pc)
-    # shape2 = reconstructions[0][2,:,:]
-    print "loss : " + str(reconstructions[1])
+num_pts_to_mask = 1000
+# full_pc,_,_ = all_pc_data.full_epoch_data()
+num_input = all_pc_data.num_examples
+batch_size =int(10)
+num_iters = int(math.ceil(num_input/float(batch_size)))
+array_row_size = int(num_iters*batch_size)
+print "lv num rows:" + str(array_row_size)
+lv_array = np.zeros([ array_row_size, bneck_size])
+for i in range(num_iters):
+    feed_pc, feed_model_names, _ = all_pc_data.next_batch(batch_size)
+    # latent_codes = ae.transform(feed_pc) ##also might want to switch to encoder_with_convs_and_symmetry in ae_template, tho not necessary###
+    latent_codes = ae.transform_with_mask(feed_pc,num_pts_removed= num_pts_to_mask)
+    lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
-    write_ply("airplane1.ply",reconstructions[0][1,:,:])
-    write_ply("airplane2.ply",reconstructions[0][2,:,:])
-    write_ply("airplane3.ply",reconstructions[0][3,:,:])
-    write_ply("airplane4.ply",reconstructions[0][4,:,:])
-    # pdb.set_trace()
-    # print "reconstructed, shape:" + str(reconstructions.shape)
-    latent_codes = ae.transform(feed_pc)
-else:
 
-    lv_array  = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane/airplane_latent_with_mask.txt')
-    lv_batch = lv_array[0:10,:]
+# np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
 
-    reconstructions = ae.decode(lv_batch)
-    for i in range(4):
-        write_ply("airplane" + str(i) + "_from_masked_lv.ply", reconstructions[i, :, :])
+lv_batch = lv_array[0:10,:]
+
+reconstructions = ae.decode(lv_batch)
+for i in range(4):
+    write_ply("airplane" + str(i) + "_from_" + str(num_pts_to_mask) +"masked_lv.ply", reconstructions[i, :, :])
+
 
 
 

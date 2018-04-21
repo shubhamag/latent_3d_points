@@ -160,7 +160,8 @@ class AutoEncoder(Neural_Net):
         '''Transform data by mapping it into the latent space.'''
         return self.sess.run(self.z, feed_dict={self.x: X})
 
-    def transform_with_mask(self,X):
+    def transform_with_mask(self,X,num_pts_removed = 100):
+        print "Transform with mask called, with " + str(num_pts_removed) + " points removed"
 
         indx = np.random.randint(X.shape[1], size=X.shape[0])
         temp = np.zeros(X.shape[:2])
@@ -169,7 +170,7 @@ class AutoEncoder(Neural_Net):
         X_diff = np.sum(np.square(X_idx - X), axis=2)
         X_diff_arg = np.argsort(X_diff,axis=1)
         mask_inp = np.ones(X.shape[:2],dtype = np.float32)
-        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-100:]]]=0
+        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-num_pts_removed:]]]=0
         mask_inp = np.expand_dims(mask_inp, axis=2)
         return self.sess.run(self.z, feed_dict={self.x: X,self.mask: mask_inp})
 
