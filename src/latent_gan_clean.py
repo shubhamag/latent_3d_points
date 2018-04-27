@@ -14,7 +14,7 @@ from tflearn import is_training
 
 
 class LatentGAN(GAN):
-    def __init__(self, name, learning_rate, n_output, noise_dim, discriminator, generator, beta=0.9, batch_size=1, gen_kwargs={}, disc_kwargs={}, graph=None):
+    def __init__(self, name, learning_rate, n_output, noise_dim, discriminator, generator,lc_weight= 0.01, beta=0.9, batch_size=1, gen_kwargs={}, disc_kwargs={}, graph=None):
 
         self.noise_dim = noise_dim
         self.n_output = n_output
@@ -45,7 +45,7 @@ class LatentGAN(GAN):
             d_params = [v for v in train_vars if v.name.startswith(name + '/discriminator/')]
             g_params = [v for v in train_vars if v.name.startswith(name + '/generator/')]
             noise_params = [v for v in train_vars if 'noise' in v.name]
-            self.opt_g = self.optimizer(learning_rate, beta, 0.01*self.loss_g+self.loss_l2, noise_params)
+            self.opt_g = self.optimizer(learning_rate, beta, lc_weight *self.loss_g+self.loss_l2, noise_params)
             self.saver = tf.train.Saver(d_params+g_params, max_to_keep=1)
             self.init = tf.global_variables_initializer()
 
@@ -59,7 +59,7 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/gan_model'):
+    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/gan_model',lc_weight = 0.01):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
@@ -89,7 +89,7 @@ class LatentGAN(GAN):
         finally:
             is_training(False, session=self.sess)
 
-        np.savetxt('cleaned_vector.txt', cleaned_vector)
+        np.savetxt('cleaned_vector_' + str(lc_weight) +  '.txt', cleaned_vector)
         epoch_loss_d /= epoch
         epoch_loss_g /= epoch
         duration = time.time() - start_time

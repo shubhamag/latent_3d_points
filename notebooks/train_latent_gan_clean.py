@@ -55,8 +55,10 @@ def trainGAN():
 	latent_vec = latent_vec[:100]
 	batch_size = latent_vec.shape[0]
 	latent_vec_class = latent_dataset(latent_vec)
-	latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size], noise_dim = 128, discriminator = discriminator, generator = generator, beta=0.9, batch_size=batch_size)
-	(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,epoch = 10000)
+	for l in range(10):
+		latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size], noise_dim = 128, discriminator = discriminator, generator = generator, beta=0.9, batch_size=batch_size)
+
+		(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,epoch = 10000)
 	print("l2_loss %4f gen %4f duration %f"%(d_loss, g_loss, time))
 
 
