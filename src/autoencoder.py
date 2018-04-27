@@ -128,11 +128,20 @@ class AutoEncoder(Neural_Net):
             The reconstructed (output) point-clouds.
         '''
         is_training(True, session=self.sess)
+        indx = np.random.randint(X.shape[1], size=X.shape[0])
+        temp = np.zeros(X.shape[:2])
+        temp[[np.arange(X.shape[0]), indx]]=1
+        X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
+        X_diff = np.sum(np.square(X_idx - X), axis=2)
+        X_diff_arg = np.argsort(X_diff,axis=1)
+        mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-num_pts_removed:]]]=0
+        mask_inp = np.expand_dims(mask_inp, axis=2)
         try:
             if GT is not None:
-                _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.gt: GT})
+                _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.gt: GT, self.mask: mask_inp})
             else:
-                _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X})
+                _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.mask: mask_inp})
 
             is_training(False, session=self.sess)
         except Exception:
