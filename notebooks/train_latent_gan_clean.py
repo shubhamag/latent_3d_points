@@ -50,15 +50,16 @@ class latent_dataset:
 
 
 def trainGAN():
-	latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane/airplane_latent_with_1000mask.txt')
+	latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/clean/lv_with_mask_5.txt')
 	bneck_size = latent_vec.shape[1]
-	latent_vec = latent_vec[:100]
+	latent_vec = latent_vec[:10]
 	batch_size = latent_vec.shape[0]
 	latent_vec_class = latent_dataset(latent_vec)
-	for l in range(10):
-		latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size], noise_dim = 128, discriminator = discriminator, generator = generator, beta=0.9, batch_size=batch_size)
+	latentgan = LatentGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=128,
+						  discriminator=discriminator, generator=generator, beta=0.9, batch_size=batch_size)
 
-		(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,epoch = 10000)
+
+	(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,epoch = 10000)
 	print("l2_loss %4f gen %4f duration %f"%(d_loss, g_loss, time))
 
 

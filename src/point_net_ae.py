@@ -3,7 +3,7 @@ Created on January 26, 2017
 
 @author: optas
 '''
-
+import pdb
 import time
 import tensorflow as tf
 import os.path as osp
@@ -108,7 +108,7 @@ class PointNetAutoEncoder(AutoEncoder):
         if only_fw:
             fit = self.reconstruct
         else:
-            fit = self.partial_fit
+            fit = self.partial_fit_without_mask
 
         # Loop over all batches
         for _ in xrange(n_batches):
@@ -165,6 +165,7 @@ class PointNetAutoEncoder(AutoEncoder):
             batch_temp = np.transpose(np.expand_dims(batch_i[:,rand_points,:], 3),[0,3,2,1])
             batch_diff = np.sum(np.square(np.expand_dims(batch_i,3) - batch_temp), axis=2)
             batch_ext = np.concatenate((batch_i, batch_diff), axis = 2)
+            pdb.set_trace()
 
             if self.is_denoising:
                 _, loss = fit(batch_i, original_data)

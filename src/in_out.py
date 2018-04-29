@@ -143,7 +143,7 @@ class PointCloudDataSet(object):
     See https://github.com/tensorflow/tensorflow/blob/a5d8217c4ed90041bea2616c14a8ddcf11ec8c03/tensorflow/examples/tutorials/mnist/input_data.py
     '''
 
-    def __init__(self, point_clouds, noise=None, labels=None, copy=True, init_shuffle=True):
+    def __init__(self, point_clouds, noise=None, labels=None, copy=True, init_shuffle=False):
         '''Construct a DataSet.
         Args:
             init_shuffle, shuffle data before first epoch has been reached.
@@ -201,7 +201,7 @@ class PointCloudDataSet(object):
         self._index_in_epoch += batch_size
         if self._index_in_epoch > self.num_examples:
             self.epochs_completed += 1  # Finished epoch.
-            self.shuffle_data(seed) #shuffle data after each epoch
+            # self.shuffle_data(seed) #shuffle data after each epoch
             # Start next epoch
             start = 0
             self._index_in_epoch = batch_size
@@ -218,8 +218,8 @@ class PointCloudDataSet(object):
         if shuffle and seed is not None:
             np.random.seed(seed)
         perm = np.arange(self.num_examples)  # Shuffle the data.
-        if shuffle:
-            np.random.shuffle(perm)
+        # if shuffle:
+        #     np.random.shuffle(perm)
         pc = self.point_clouds[perm]
         lb = self.labels[perm]
         ns = None

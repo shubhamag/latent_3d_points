@@ -36,11 +36,11 @@ import pdb
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae'
+experiment_name = 'single_class_ae/clean'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
-class_name = raw_input('Give me the class name (e.g. "chair"): ').lower()
+# class_name = raw_input('Give me the class name (e.g. "chair"): ').lower() #uncomment to ask class
 
 
 # Load Point-Clouds
@@ -48,8 +48,10 @@ class_name = raw_input('Give me the class name (e.g. "chair"): ').lower()
 # In[4]:
 
 
-syn_id = snc_category_to_synth_id()[class_name]
-class_dir = osp.join(top_in_dir , syn_id)
+# syn_id = snc_category_to_synth_id()[class_name]
+# class_dir = osp.join(top_in_dir , syn_id)
+##Test data
+class_dir  = '/home/shubham/latent_3d_points/notebooks/gt/'
 all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
 
 
@@ -123,34 +125,53 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 # In[1]:
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
-ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/with_global_with_upsampling/trials',1)
+ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean',410)
+print "Successfully loaded model"
 
 
 
 # Get a batch of reconstuctions and their latent-codes.
 reconstruct_from_latent_vectors = True
+pref = "./recon_from_ac/"
 
 if(reconstruct_from_latent_vectors == False):
     feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
+    in_copy = feed_pc.copy()
+    # rmask = np.random.randint(2, size=in_copy.shape)
+    # in_copy = in_copy*rmask
+    # write_ply(pref+"airplane0_downsampled.ply", in_copy[0])
+    # write_ply(pref+"airplane1_downsampled.ply", in_copy[1])
+    # write_ply(pref+"airplane2_downsampled.ply", in_copy[2])
+    # write_ply(pref+"airplane3_downsampled.ply", in_copy[3])
+    # write_ply(pref+"airplane4_downsampled.ply", in_copy[4])
+    # pdb.set_trace()
+
+
     reconstructions = ae.reconstruct(feed_pc)
     # shape2 = reconstructions[0][2,:,:]
     print "loss : " + str(reconstructions[1])
 
-    write_ply("airplane1.ply",reconstructions[0][1,:,:])
-    write_ply("airplane2.ply",reconstructions[0][2,:,:])
-    write_ply("airplane3.ply",reconstructions[0][3,:,:])
-    write_ply("airplane4.ply",reconstructions[0][4,:,:])
+    write_ply(pref+"airplane0_acrecon.ply",reconstructions[0][0,:,:])
+    write_ply(pref+"airplane1_acrecon.ply",reconstructions[0][1,:,:])
+    write_ply(pref+"airplane2_acrecon.ply",reconstructions[0][2,:,:])
+    write_ply(pref+"airplane3_acrecon.ply",reconstructions[0][3,:,:])
+    write_ply(pref+"airplane4_acrecon.ply",reconstructions[0][4,:,:])
     # pdb.set_trace()
     # print "reconstructed, shape:" + str(reconstructions.shape)
     latent_codes = ae.transform(feed_pc)
-else:
 
-    lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/cleaned_vector.txt')
+else:
+    print "reconstructing from lvs"
+    pref = './lv_cleaned/'
+
+    lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/cleaned_vector_0.01.txt')
     lv_batch = lv_array
 
     reconstructions = ae.decode(lv_batch)
-    for i in range(6):
-        write_ply("airplane" + str(i) + "_from_cleaned_lv.ply", reconstructions[i, :, :])
+    for i in range(10):
+        write_ply(pref + "airplane" + str(i) + "_from_cleaned_lv_new.ply", reconstructions[i, :, :])
 
 
 

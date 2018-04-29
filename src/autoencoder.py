@@ -3,7 +3,7 @@ Created on February 2, 2017
 
 @author: optas
 '''
-
+import sys
 import warnings
 import os.path as osp
 import tensorflow as tf
@@ -45,6 +45,7 @@ class Configuration():
         self.saver_max_to_keep = saver_max_to_keep
         self.training_epochs = training_epochs
         self.debug = debug
+
 
         # Used in VAE
         self.latent_vs_recon = np.array([latent_vs_recon], dtype=np.float32)[0]
@@ -93,7 +94,8 @@ class AutoEncoder(Neural_Net):
         self.is_denoising = configuration.is_denoising
         self.n_input = configuration.n_input
         self.n_output = configuration.n_output
-        mask_inp = np.ones([batch_size, configuration.n_input[0], 1])
+        self.train_counter = 0
+        mask_inp = np.ones([batch_size, configuration.n_input[0], 1]) ##TODO uncomment for masking
         self.mask = tf.placeholder_with_default(mask_inp, [None, configuration.n_input[0], 1])
         configuration.encoder_args['mask']= self.mask
 
@@ -110,6 +112,11 @@ class AutoEncoder(Neural_Net):
     def restore_model(self, model_path, epoch, verbose=True):
         '''Restore all the variables of a saved auto-encoder model.
         '''
+        vars = tf.trainable_variables()
+        vars_name = [var.name for var in vars]
+        for i in range(len(vars_name)):
+            print("\n"+vars_name[i])
+        # sys.exit(0)
         self.saver.restore(self.sess, osp.join(model_path, model_saver_id + '-' + str(int(epoch))))
 
         if self.epoch.eval(session=self.sess) != epoch:
@@ -119,7 +126,33 @@ class AutoEncoder(Neural_Net):
                 print "Restored from :" + osp.join(model_path, model_saver_id + '-' + str(int(epoch)))
                 print('Model restored in epoch {0}.'.format(epoch))
 
-    def partial_fit(self, X, GT=None):
+    def partial_fit_without_mask(self, X, GT=None,num_pts_removed = 1000):
+        '''Trains the model with mini-batches of input data.
+        If GT is not None, then the reconstruction loss compares the output of the net that is fed X, with the GT.
+        This can be useful when training for instance a denoising auto-encoder.
+        Returns:
+            The loss of the mini-batch.
+            The reconstructed (output) point-clouds.
+        '''
+
+        try:
+            if GT is not None:
+
+                _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.gt: GT})
+            else:
+                if(self.train_counter==0):
+                    print ("training WITHOUT mask")
+                    self.train_counter+=1
+                _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X,})
+
+            is_training(False, session=self.sess)
+        except Exception:
+            raise
+        finally:
+            is_training(False, session=self.sess)
+        return recon, loss
+
+    def partial_fit(self, X, GT=None,num_pts_removed = 1000):
         '''Trains the model with mini-batches of input data.
         If GT is not None, then the reconstruction loss compares the output of the net that is fed X, with the GT.
         This can be useful when training for instance a denoising auto-encoder.
@@ -128,19 +161,24 @@ class AutoEncoder(Neural_Net):
             The reconstructed (output) point-clouds.
         '''
         is_training(True, session=self.sess)
-        indx = np.random.randint(X.shape[1], size=X.shape[0])
-        temp = np.zeros(X.shape[:2])
-        temp[[np.arange(X.shape[0]), indx]]=1
-        X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
-        X_diff = np.sum(np.square(X_idx - X), axis=2)
-        X_diff_arg = np.argsort(X_diff,axis=1)
+        # mask = np.random.randint(2,size=X.shape)
+        # indx = np.random.randint(X.shape[1], size=X.shape[0])
+        # temp = np.zeros(X.shape[:2])
+        # temp[[np.arange(X.shape[0]), indx]]=1
+        # X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
+        # X_diff = np.sum(np.square(X_idx - X), axis=2)
+        # X_diff_arg = np.argsort(X_diff,axis=1)
         mask_inp = np.ones(X.shape[:2],dtype = np.float32)
-        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-num_pts_removed:]]]=0
+        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])]]=0
         mask_inp = np.expand_dims(mask_inp, axis=2)
         try:
             if GT is not None:
+
                 _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.gt: GT, self.mask: mask_inp})
             else:
+                if(self.train_counter==0):
+                    print ("training with random binary upsample mask")
+                    self.train_counter+=1
                 _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.mask: mask_inp})
 
             is_training(False, session=self.sess)
@@ -162,6 +200,32 @@ class AutoEncoder(Neural_Net):
 
         if GT is None:
             return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X })
+        else:
+            return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT})
+
+    def reconstruct_with_mask(self, X, GT=None, compute_loss=True,num_pts_removed=1000):
+        '''Use AE to reconstruct given data.
+        GT will be used to measure the loss (e.g., if X is a noisy version of the GT)'''
+        if compute_loss:
+            loss = self.loss
+        else:
+            loss = tf.no_op()
+        # mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+        # mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])]]=0
+        # mask_inp = np.expand_dims(mask_inp, axis=2)
+        #
+        indx = np.random.randint(X.shape[1], size=X.shape[0])
+        temp = np.zeros(X.shape[:2])
+        temp[[np.arange(X.shape[0]), indx]]=1
+        X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
+        X_diff = np.sum(np.square(X_idx - X), axis=2)
+        X_diff_arg = np.argsort(X_diff,axis=1)
+        mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-num_pts_removed:]]]=0
+        mask_inp = np.expand_dims(mask_inp, axis=2)
+
+        if GT is None:
+            return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X,self.mask: mask_inp})
         else:
             return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT})
 

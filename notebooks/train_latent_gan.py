@@ -50,7 +50,7 @@ class latent_dataset:
 
 
 def trainGAN():
-	latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane/airplane_latent.txt')
+	latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane_latent_clean.txt')
 	bneck_size = latent_vec.shape[1]
 	latent_vec_class = latent_dataset(latent_vec)
 	latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size], noise_dim = 128, discriminator = discriminator, generator = generator, beta=0.9)

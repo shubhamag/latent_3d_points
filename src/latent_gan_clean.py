@@ -35,7 +35,7 @@ class LatentGAN(GAN):
                 self.synthetic_prob, self.synthetic_logit = self.discriminator(self.generator_out, scope=scope)
 
             self.loss_g = tf.reduce_mean(-tf.log(self.synthetic_prob))
-
+            # zeros= t
             self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
 
             #Post ICLR TRY: safe_log
@@ -59,7 +59,7 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/gan_model',lc_weight = 0.01):
+    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_gan_model',lc_weight = 0.01):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
