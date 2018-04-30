@@ -34,10 +34,16 @@ class LatentGAN(GAN):
             with tf.variable_scope('discriminator') as scope:
                 self.real_prob, self.real_logit = self.discriminator(self.gt_data, scope=scope)
                 self.synthetic_prob, self.synthetic_logit = self.discriminator(self.generator_out, reuse=True, scope=scope)
-
-            self.loss_d = tf.reduce_mean(-tf.log(self.real_prob) - tf.log(1 - self.synthetic_prob))
-            self.loss_g = tf.reduce_mean(-tf.log(self.synthetic_prob))
-
+            self.loss_d = tf.reduce_mean(self.real_logit) - tf.reduce_mean(self.synthetic_logit)
+            self.loss_g = tf.reduce_mean(self.synthetic_logit)
+            epsilon = tf.random_uniform([], 0.0, 1.0)
+            x_hat = self.gt_data*epsilon + (1-epsilon)*self.generator_out
+            with tf.variable_scope('discriminator') as scope:
+                self.d_hat_prob, self.d_hat = self.discriminator(x_hat, reuse=True, scope=scope)
+            gradients = tf.gradients(self.d_hat, x_hat)[0]
+            slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
+            gradient_penalty = 10*tf.reduce_mean((slopes-1.0)**2)
+            self.loss_d += gradient_penalty
             #Post ICLR TRY: safe_log
 
             train_vars = tf.trainable_variables()
