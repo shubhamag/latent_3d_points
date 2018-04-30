@@ -37,7 +37,7 @@ import pdb
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae/clean'
+experiment_name = 'single_class_ae'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
@@ -125,7 +125,8 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 # In[1]:
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
-ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',410)
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',410)
+ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
 
 # buf_size = 1 # Make 'training_stats' file to flush each output line regarding training.
 # fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
@@ -138,7 +139,7 @@ ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',41
 # In[13]:
 
 # latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/'+ str(class_name)+'/' + str(class_name) + "_latent_with_mask.txt"
-latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/' + "airplane_latent_clean.txt"
+latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/' + "airplane_full.txt"
 # feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
 
 full_pc,_,_ = all_pc_data.full_epoch_data()

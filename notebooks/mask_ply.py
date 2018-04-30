@@ -150,6 +150,7 @@ X_diff_arg = np.argsort(X_diff,axis=1)
 mask_inp = np.ones(X.shape[:2],dtype = np.float32)
 mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-num_pts_removed:]]]=0
 mask_inp = np.expand_dims(mask_inp, axis=2)
+
 masked = mask_inp*X
 in_copy = masked
 

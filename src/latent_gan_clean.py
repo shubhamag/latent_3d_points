@@ -14,12 +14,13 @@ from tflearn import is_training
 
 
 class LatentGAN(GAN):
-    def __init__(self, name, learning_rate, n_output, noise_dim, discriminator, generator,lc_weight= 0.01, beta=0.9, batch_size=1, gen_kwargs={}, disc_kwargs={}, graph=None):
+    def __init__(self, name, learning_rate, n_output, noise_dim, discriminator, generator,lc_weight= 0.001, beta=0.9, batch_size=1, gen_kwargs={}, disc_kwargs={}, graph=None):
 
         self.noise_dim = noise_dim
         self.n_output = n_output
         self.discriminator = discriminator
         self.generator = generator
+        # self.final_lc_weight = 0.01
 
         GAN.__init__(self, name, graph)
 
@@ -27,6 +28,7 @@ class LatentGAN(GAN):
 
             self.noise = tf.get_variable("noise", shape=[batch_size, noise_dim], initializer = tf.random_normal_initializer())                  # Noise vector.
             self.gt_data = tf.placeholder(tf.float32, shape=[None] + self.n_output)                                                           # Ground-truth.
+            self.lc_wt = tf.placeholder(tf.float32)  # Ground-truth.
 
             with tf.variable_scope('generator'):
                 self.generator_out = self.generator(self.noise, self.n_output)
@@ -36,6 +38,7 @@ class LatentGAN(GAN):
 
             self.loss_g = tf.reduce_mean(-tf.log(self.synthetic_prob))
             # zeros= t
+            # self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data)*tf.cast(tf.greater(tf.abs(self.gt_data),0),tf.float32))
             self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
 
             #Post ICLR TRY: safe_log
@@ -45,7 +48,7 @@ class LatentGAN(GAN):
             d_params = [v for v in train_vars if v.name.startswith(name + '/discriminator/')]
             g_params = [v for v in train_vars if v.name.startswith(name + '/generator/')]
             noise_params = [v for v in train_vars if 'noise' in v.name]
-            self.opt_g = self.optimizer(learning_rate, beta, lc_weight *self.loss_g+self.loss_l2, noise_params)
+            self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_l2, noise_params)
             self.saver = tf.train.Saver(d_params+g_params, max_to_keep=1)
             self.init = tf.global_variables_initializer()
 
@@ -59,7 +62,7 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_gan_model',lc_weight = 0.01):
+    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_gan32_model',lc_weight = 0.01):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
@@ -69,27 +72,47 @@ class LatentGAN(GAN):
         epoch_loss_l2 = 0.
         epoch_loss_g = 0.
         start_time = time.time()
+        # final_lc_weightt =0.01
+
 
         is_training(True, session=self.sess)
-        try:
-            # Loop over all batches
-            for _ in xrange(epoch):
-                feed_dict = {self.gt_data: batch}
-                loss_g, loss_l2, _ = self.sess.run([self.loss_g, self.loss_l2, self.opt_g], feed_dict=feed_dict)
+        lc_wt_mat = [0.0001, 0.0005,0.001,0.005,0.01,0.05]
+        g_losses= []
+        l2_losses=[]
+        for l in lc_wt_mat:
+            self.sess.run(tf.global_variables_initializer())
 
-                # Compute average loss
-                epoch_loss_l2 += loss_l2
-                epoch_loss_g += loss_g
+            try:
+                # Loop over all batches
+                is_training(True, session=self.sess)
+                lc_wt = np.linspace(l, l/10.0, epoch)
+                for i in xrange(epoch):
 
-            cleaned_vector = self.sess.run(self.generator_out)
-            is_training(False, session=self.sess)
+                    feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i]}
+                    loss_g, loss_l2, _ = self.sess.run([self.loss_g, self.loss_l2, self.opt_g], feed_dict=feed_dict)
+                    print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g))
 
-        except Exception:
-            raise
-        finally:
-            is_training(False, session=self.sess)
+                    # Compute average loss
+                    epoch_loss_l2 += loss_l2
+                    epoch_loss_g += loss_g
 
-        np.savetxt('cleaned_vector_' + str(lc_weight) +  '.txt', cleaned_vector)
+                cleaned_vector = self.sess.run(self.generator_out)
+                is_training(False, session=self.sess)
+
+            except Exception:
+                raise
+            g_losses.append(loss_g)
+            l2_losses.append(loss_l2)
+
+
+            save_path  ='gt_downsampled_cleaned_' + str(l) +  '.txt'
+            np.savetxt(save_path, cleaned_vector)
+            print("cleaned vecs saved to "+save_path)
+
+        print("final losses:")
+        for i,l in enumerate(lc_wt_mat):
+            print(l,l2_losses[i],g_losses[i])
+
         epoch_loss_d /= epoch
         epoch_loss_g /= epoch
         duration = time.time() - start_time

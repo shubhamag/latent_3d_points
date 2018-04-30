@@ -36,7 +36,7 @@ import pdb
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae/clean'
+experiment_name = 'single_class_ae'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
@@ -125,9 +125,11 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 # In[1]:
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
-# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
+ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/',900)
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/with_global_with_upsampling/',890)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/with_global_with_upsampling/trials',1)
-ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean',410)
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean',410)
 print "Successfully loaded model"
 
 
@@ -138,40 +140,46 @@ pref = "./recon_from_ac/"
 
 if(reconstruct_from_latent_vectors == False):
     feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
-    in_copy = feed_pc.copy()
-    # rmask = np.random.randint(2, size=in_copy.shape)
-    # in_copy = in_copy*rmask
+    # in_copy = feed_pc.copy()
+    # rmask = np.random.randint(2, size=in_copy.shape[:2])
+    # in_copy = in_copy*np.expand_dims(rmask,axis=2)
     # write_ply(pref+"airplane0_downsampled.ply", in_copy[0])
     # write_ply(pref+"airplane1_downsampled.ply", in_copy[1])
     # write_ply(pref+"airplane2_downsampled.ply", in_copy[2])
+    # exit(0)
     # write_ply(pref+"airplane3_downsampled.ply", in_copy[3])
     # write_ply(pref+"airplane4_downsampled.ply", in_copy[4])
     # pdb.set_trace()
 
 
-    reconstructions = ae.reconstruct(feed_pc)
+    # reconstructions = ae.reconstruct(feed_pc)
+    reconstructions = ae.reconstruct_with_mask(feed_pc)
     # shape2 = reconstructions[0][2,:,:]
     print "loss : " + str(reconstructions[1])
 
-    write_ply(pref+"airplane0_acrecon.ply",reconstructions[0][0,:,:])
-    write_ply(pref+"airplane1_acrecon.ply",reconstructions[0][1,:,:])
-    write_ply(pref+"airplane2_acrecon.ply",reconstructions[0][2,:,:])
-    write_ply(pref+"airplane3_acrecon.ply",reconstructions[0][3,:,:])
-    write_ply(pref+"airplane4_acrecon.ply",reconstructions[0][4,:,:])
-    # pdb.set_trace()
+    # write_ply(pref+"airplane0_acrecon_upsampling.ply",reconstructions[0][0,:,:])
+    # write_ply(pref+"airplane1_acrecon_upsampling.ply",reconstructions[0][1,:,:])
+    # write_ply(pref+"airplane2_acrecon_upsampling.ply",reconstructions[0][2,:,:])
+    # write_ply(pref+"airplane3_acrecon.ply",reconstructions[0][3,:,:])
+    # write_ply(pref+"airplane4_acrecon.ply",reconstructions[0][4,:,:])
+    # # pdb.set_trace()
     # print "reconstructed, shape:" + str(reconstructions.shape)
-    latent_codes = ae.transform(feed_pc)
+    # latent_codes = ae.transform(feed_pc)
 
 else:
     print "reconstructing from lvs"
-    pref = './lv_cleaned/'
+    pref = './recon_from_ac/'
 
-    lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/cleaned_vector_0.01.txt')
+    # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/cleaned_vector_0.01.txt')
+    # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/cleaned_vector_test_0.01.txt')
+    # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/test_lvs.txt') ##directly use input vecs
+    # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/clean/lv_with_mask_5.txt') ##noisy vecs
+    lv_array  = np.loadtxt('gt_downsampled_cleaned_0.01.txt') ##noisy vecs
     lv_batch = lv_array
 
     reconstructions = ae.decode(lv_batch)
-    for i in range(10):
-        write_ply(pref + "airplane" + str(i) + "_from_cleaned_lv_new.ply", reconstructions[i, :, :])
+    for i in range(3):
+        write_ply(pref + "airplane_gan_masked_cleaned_" + str(i) + "_.ply", reconstructions[i, :, :])
 
 
 

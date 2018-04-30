@@ -27,7 +27,7 @@ import pdb
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae/clean'
+experiment_name = 'single_class_ae'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
@@ -107,11 +107,15 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
-ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',410)
+ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',410)
+
+##use best encoder and GAN:
+
 
 
 num_pts_to_mask = 1000
-latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/clean/' + 'lv_with_mask_5.txt'
+latent_vec_file = '/home/shubham/latent_3d_points/notebooks/gt_noisy_vecs_masked.txt'
 
 
 # full_pc,_,_ = all_pc_data.full_epoch_data()
