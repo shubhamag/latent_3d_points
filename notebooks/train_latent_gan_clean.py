@@ -57,7 +57,7 @@ def trainGAN():
 	latent_vec = latent_vec[:10]
 	batch_size = latent_vec.shape[0]
 	# latent_vec_class = latent_dataset(latent_vec)
-	latentgan = LatentGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=32,
+	latentgan = LatentGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=64,
 						  discriminator=discriminator, generator=generator, beta=0.9, batch_size=batch_size)
 
 

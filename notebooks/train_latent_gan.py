@@ -53,7 +53,7 @@ def trainGAN():
 	latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full.txt')
 	bneck_size = latent_vec.shape[1]
 	latent_vec_class = latent_dataset(latent_vec)
-	latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size], noise_dim = 32, discriminator = discriminator, generator = generator, beta=0.9)
+	latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size], noise_dim = 64, discriminator = discriminator, generator = generator, beta=0.9)
 	for i in xrange(num_epoch):
 		(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec_class,epoch = i)
 		print("disc %4f gen %4f duration %f"%(d_loss, g_loss, time))

@@ -36,7 +36,9 @@ class LatentGAN(GAN):
             with tf.variable_scope('discriminator') as scope:
                 self.synthetic_prob, self.synthetic_logit = self.discriminator(self.generator_out, scope=scope)
 
-            self.loss_g = tf.reduce_mean(-tf.log(self.synthetic_prob))
+            # self.loss_g = tf.reduce_mean(-tf.log(self.synthetic_prob))
+            self.loss_g = tf.reduce_mean(self.synthetic_logit)
+
             # zeros= t
             # self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data)*tf.cast(tf.greater(tf.abs(self.gt_data),0),tf.float32))
             self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
@@ -62,7 +64,7 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_gan32_model',lc_weight = 0.01):
+    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_wgan64',lc_weight = 0.01):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
@@ -105,7 +107,7 @@ class LatentGAN(GAN):
             l2_losses.append(loss_l2)
 
 
-            save_path  ='gt_downsampled_cleaned_' + str(l) +  '.txt'
+            save_path  ='gt_wgan64_cleaned_' + str(l) +  '.txt'
             np.savetxt(save_path, cleaned_vector)
             print("cleaned vecs saved to "+save_path)
 
