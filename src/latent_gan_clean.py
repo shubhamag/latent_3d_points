@@ -49,7 +49,7 @@ class LatentGAN(GAN):
 
             # zeros= t
             # self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data)*tf.cast(tf.greater(tf.abs(self.gt_data),0),tf.float32))
-            #self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
+            self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
 
             # X_idx = tf.expand_dims(masked_cloud, axis=3)
             # X_diff = tf.reduce_sum(tf.square(X_idx - tf.expand_dims(tf.transpose(generator_out,[0,2,1]),axis=1)), axis=2)
@@ -62,7 +62,7 @@ class LatentGAN(GAN):
             self.gen_reconstr = tf.reshape(layer, [-1, ae.n_output[0], ae.n_output[1]])
             
             dist, idx, _, _ = nn_distance(self.masked_cloud, self.gen_reconstr)
-            self.loss_l2 = tf.reduce_mean(dist)
+            self.loss_chd = tf.reduce_mean(dist)
             #Post ICLR TRY: safe_log
 
             train_vars = tf.trainable_variables()
@@ -70,7 +70,8 @@ class LatentGAN(GAN):
             d_params = [v for v in train_vars if v.name.startswith(name + '/discriminator/')]
             g_params = [v for v in train_vars if v.name.startswith(name + '/generator/')]
             noise_params = [v for v in train_vars if 'noise' in v.name]
-            self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_l2, noise_params)
+            self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_chd, noise_params)
+            self.opt_l2 = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_l2, noise_params)
             self.saver = tf.train.Saver(d_params+g_params, max_to_keep=1)
             self.init = tf.global_variables_initializer()
 
@@ -108,6 +109,10 @@ class LatentGAN(GAN):
                 # Loop over all batches
                 is_training(True, session=self.sess)
                 lc_wt = np.linspace(l, l/10.0, epoch)
+                for i in xrange(epoch):
+                    feed_dict = {self.gt_data: batch, self.lc_wt:0}
+                    loss_l2, _ = self.sess.run([self.loss_l2, self.opt_l2], feed_dict=feed_dict)
+                    print("l2_loss:" + str(loss_l2))
                 for i in xrange(epoch):
 
                     feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i],self.masked_cloud:masked_cloud}
