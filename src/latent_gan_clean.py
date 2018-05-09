@@ -11,10 +11,16 @@ from . gan import GAN
 
 # from .. fundamentals.layers import safe_log
 from tflearn import is_training
+try:    
+    from .. external.structural_losses.tf_nndistance import nn_distance
+    from .. external.structural_losses.tf_approxmatch import approx_match, match_cost
+except:
+    print('External Losses (Chamfer-EMD) cannot be loaded. Please install them first.')
+
 
 
 class LatentGAN(GAN):
-    def __init__(self, name, learning_rate, n_output, noise_dim, discriminator, generator,lc_weight= 0.001, beta=0.9, batch_size=1, gen_kwargs={}, disc_kwargs={}, graph=None,masked_cloud_size=1024):
+    def __init__(self, name, learning_rate, n_output, noise_dim, discriminator, generator,lc_weight= 0.001, beta=0.9, batch_size=1, gen_kwargs={}, disc_kwargs={}, graph=None,masked_cloud_size=1024, ae=None):
 
         self.noise_dim = noise_dim
         self.n_output = n_output
@@ -43,8 +49,20 @@ class LatentGAN(GAN):
 
             # zeros= t
             # self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data)*tf.cast(tf.greater(tf.abs(self.gt_data),0),tf.float32))
-            self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
+            #self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
 
+            # X_idx = tf.expand_dims(masked_cloud, axis=3)
+            # X_diff = tf.reduce_sum(tf.square(X_idx - tf.expand_dims(tf.transpose(generator_out,[0,2,1]),axis=1)), axis=2)
+            # X_diff_arg = tf.reduce_min(X_diff,axis=2)
+            c = ae.configuration
+            layer = c.decoder(generator_out, **c.decoder_args)
+            if c.exists_and_is_not_none('close_with_tanh'):
+                layer = tf.nn.tanh(layer)
+
+            self.gen_reconstr = tf.reshape(layer, [-1, ae.n_output[0], ae.n_output[1]])
+            
+            dist, idx, _, _ = nn_distance(masked_cloud, gen_reconstr)
+            self.loss_l2 = dist
             #Post ICLR TRY: safe_log
 
             train_vars = tf.trainable_variables()
