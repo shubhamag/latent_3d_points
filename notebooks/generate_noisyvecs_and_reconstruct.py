@@ -140,6 +140,9 @@ if(clean_with_gan_and_reconstruct):
     GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked,ae=ae)
 
 
+
+
+
 # lv_batch = lv_array[0:10,:]
 #
 # reconstructions = ae.decode(lv_batch)

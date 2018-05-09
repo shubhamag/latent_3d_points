@@ -55,14 +55,14 @@ class LatentGAN(GAN):
             # X_diff = tf.reduce_sum(tf.square(X_idx - tf.expand_dims(tf.transpose(generator_out,[0,2,1]),axis=1)), axis=2)
             # X_diff_arg = tf.reduce_min(X_diff,axis=2)
             c = ae.configuration
-            layer = c.decoder(generator_out, **c.decoder_args)
+            layer = c.decoder(self.generator_out, **c.decoder_args)
             if c.exists_and_is_not_none('close_with_tanh'):
                 layer = tf.nn.tanh(layer)
 
             self.gen_reconstr = tf.reshape(layer, [-1, ae.n_output[0], ae.n_output[1]])
             
-            dist, idx, _, _ = nn_distance(masked_cloud, gen_reconstr)
-            self.loss_l2 = dist
+            dist, idx, _, _ = nn_distance(self.masked_cloud, self.gen_reconstr)
+            self.loss_l2 = tf.reduce_mean(dist)
             #Post ICLR TRY: safe_log
 
             train_vars = tf.trainable_variables()
@@ -84,7 +84,7 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch,masked_cloud, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_wgan64',lc_weight = 0.01):
+    def _single_epoch_train(self, batch,masked_cloud, epoch, save_path = '../data/gan_model/latent_wgan64',lc_weight = 0.01):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
@@ -132,6 +132,7 @@ class LatentGAN(GAN):
             print("cleaned vecs saved to "+save_path)
 
         print("final losses:")
+
         for i,l in enumerate(lc_wt_mat):
             print(l,l2_losses[i],g_losses[i])
 
