@@ -125,7 +125,7 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 buf_size = 1 # Make 'training_stats' file to flush each output line regarding training.
 fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
-train_stats = ae.train(all_pc_data, conf, log_file=fout)
+train_stats = ae.train(all_pc_data, conf, log_file=fout,mask_type =0)
 fout.close()
 
 

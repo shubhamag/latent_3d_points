@@ -134,6 +134,7 @@ class AutoEncoder(Neural_Net):
             The loss of the mini-batch.
             The reconstructed (output) point-clouds.
         '''
+        print("training without mask")
 
         try:
             if GT is not None:
@@ -152,7 +153,7 @@ class AutoEncoder(Neural_Net):
             is_training(False, session=self.sess)
         return recon, loss
 
-    def partial_fit(self, X, GT=None,num_pts_removed = 1000):
+    def partial_fit(self, X, GT=None,num_pts_removed = 1000,mask_type=0):
         '''Trains the model with mini-batches of input data.
         If GT is not None, then the reconstruction loss compares the output of the net that is fed X, with the GT.
         This can be useful when training for instance a denoising auto-encoder.
@@ -161,16 +162,28 @@ class AutoEncoder(Neural_Net):
             The reconstructed (output) point-clouds.
         '''
         is_training(True, session=self.sess)
-        # mask = np.random.randint(2,size=X.shape)
-        # indx = np.random.randint(X.shape[1], size=X.shape[0])
-        # temp = np.zeros(X.shape[:2])
-        # temp[[np.arange(X.shape[0]), indx]]=1
-        # X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
-        # X_diff = np.sum(np.square(X_idx - X), axis=2)
-        # X_diff_arg = np.argsort(X_diff,axis=1)
-        mask_inp = np.ones(X.shape[:2],dtype = np.float32)
-        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])]]=0
-        mask_inp = np.expand_dims(mask_inp, axis=2)
+        print("training with mask type " + str(mask_type))
+        if(mask_type==0):
+            print("error, partial_fit called with mask_type 0")
+            exit()
+
+        if(mask_type ==1):
+
+            mask = np.random.randint(2,size=X.shape)
+            indx = np.random.randint(X.shape[1], size=X.shape[0])
+            temp = np.zeros(X.shape[:2])
+            temp[[np.arange(X.shape[0]), indx]]=1
+            X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
+            X_diff = np.sum(np.square(X_idx - X), axis=2)
+            X_diff_arg = np.argsort(X_diff,axis=1)
+            mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+            mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:, :num_pts_removed]]]=0
+            mask_inp = np.expand_dims(mask_inp, axis=2)
+
+        elif(mask_type==2):
+            mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+            mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])]]=0
+            mask_inp = np.expand_dims(mask_inp, axis=2)
         try:
             if GT is not None:
 
@@ -203,52 +216,103 @@ class AutoEncoder(Neural_Net):
         else:
             return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT})
 
-    def reconstruct_with_mask(self, X, GT=None, compute_loss=True,num_pts_removed=1000):
+    def reconstruct_with_mask(self, X, GT=None, compute_loss=True,num_pts_removed=1000,mask_type=0):
         '''Use AE to reconstruct given data.
         GT will be used to measure the loss (e.g., if X is a noisy version of the GT)'''
+
+        print("reconstruct with mask called with mask type " + str(mask_type) +" num pts removed " + str(num_pts_removed))
         if compute_loss:
             loss = self.loss
         else:
             loss = tf.no_op()
-        mask_inp = np.ones(X.shape[:2],dtype = np.float32)
-        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])]]=0
-        mask_inp = np.expand_dims(mask_inp, axis=2)
 
-        # indx = np.random.randint(X.shape[1], size=X.shape[0])
-        # temp = np.zeros(X.shape[:2])
-        # temp[[np.arange(X.shape[0]), indx]]=1
-        # X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
-        # X_diff = np.sum(np.square(X_idx - X), axis=2)
-        # X_diff_arg = np.argsort(X_diff,axis=1)
-        # mask_inp = np.ones(X.shape[:2],dtype = np.float32)
-        # mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-num_pts_removed:]]]=0
-        # mask_inp = np.expand_dims(mask_inp, axis=2)
+        if (mask_type == 0):
+            if GT is None:
+                return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.mask: mask_inp})
+            else:
+                return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT})
 
-        if GT is None:
-            return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X,self.mask: mask_inp})
+        if mask_type == 1:
+
+            mask_inp = np.ones(X.shape[:2], dtype=np.float32)
+            sampled = np.random.choice(X.shape[1], [X.shape[0], num_pts_removed])
+            mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), sampled]] = 0
+            mask_inp = np.expand_dims(mask_inp, axis=2)
+            # X_masked = X[[np.expand_dims(np.arange(X.shape[0]), axis=1), sampled]]
+            if GT is None:
+                return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.mask: mask_inp})
+            else:
+                return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT})
         else:
-            return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT})
+
+            indx = np.random.randint(X.shape[1], size=X.shape[0])
+            temp = np.zeros(X.shape[:2])
+            temp[[np.arange(X.shape[0]), indx]] = 1
+            X_idx = np.sum(X * np.expand_dims(temp, axis=2), axis=1, keepdims=True)
+            X_diff = np.sum(np.square(X_idx - X), axis=2)
+            X_diff_arg = np.argsort(X_diff, axis=1)
+            mask_inp = np.ones(X.shape[:2], dtype=np.float32)
+            mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:, :num_pts_removed]]] = 0
+            mask_inp = np.expand_dims(mask_inp, axis=2)
+            # X_masked = X[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:, num_pts_removed:]]]
+            if GT is None:
+                return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.mask: mask_inp})
+            else:
+                return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT})
+
+        #
+        # mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+        # mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])]]=0
+        # mask_inp = np.expand_dims(mask_inp, axis=2)
+        #
+        # # indx = np.random.randint(X.shape[1], size=X.shape[0])
+        # # temp = np.zeros(X.shape[:2])
+        # # temp[[np.arange(X.shape[0]), indx]]=1
+        # # X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
+        # # X_diff = np.sum(np.square(X_idx - X), axis=2)
+        # # X_diff_arg = np.argsort(X_diff,axis=1)
+        # # mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+        # # mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,:num_pts_removed]]]=0
+        # # mask_inp = np.expand_dims(mask_inp, axis=2)
+        #
+        # if GT is None:
+        #     return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X,self.mask: mask_inp})
+        # else:
+        #     return self.sess.run((self.x_reconstr, loss), feed_dict={self.x: X, self.gt: GT})
 
     def transform(self, X):
         '''Transform data by mapping it into the latent space.'''
         return self.sess.run(self.z, feed_dict={self.x: X})
 
-    def transform_with_mask(self,X,num_pts_removed = 100):
-        print "Transform with mask called, with " + str(num_pts_removed) + " points removed"
-        # mask_inp = np.ones(X.shape[:2],dtype = np.float32)
-        # mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])]]=0
-        # mask_inp = np.expand_dims(mask_inp, axis=2)
+    def transform_with_mask(self,X,num_pts_removed = 100,mask_type=0):
+        print ("Transform with mask called, with mask type " +str(mask_type) + " "   + str(num_pts_removed) + " points removed")
 
-        indx = np.random.randint(X.shape[1], size=X.shape[0])
-        temp = np.zeros(X.shape[:2])
-        temp[[np.arange(X.shape[0]), indx]]=1
-        X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
-        X_diff = np.sum(np.square(X_idx - X), axis=2)
-        X_diff_arg = np.argsort(X_diff,axis=1)
-        mask_inp = np.ones(X.shape[:2],dtype = np.float32)
-        mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-num_pts_removed:]]]=0
-        mask_inp = np.expand_dims(mask_inp, axis=2)
-        return self.sess.run(self.z, feed_dict={self.x: X,self.mask: mask_inp})
+
+        if(mask_type==0):
+            return self.sess.run(self.z, feed_dict={self.x: X}), X
+
+        if mask_type==1:
+
+
+            mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+            sampled = np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])
+            mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), sampled]]=0
+            mask_inp = np.expand_dims(mask_inp, axis=2)
+            X_masked = X[[np.expand_dims(np.arange(X.shape[0]),axis=1),sampled]]
+            return self.sess.run(self.z, feed_dict={self.x: X, self.mask: mask_inp}), X_masked
+        else:
+
+            indx = np.random.randint(X.shape[1], size=X.shape[0])
+            temp = np.zeros(X.shape[:2])
+            temp[[np.arange(X.shape[0]), indx]]=1
+            X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
+            X_diff = np.sum(np.square(X_idx - X), axis=2)
+            X_diff_arg = np.argsort(X_diff,axis=1)
+            mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+            mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,:num_pts_removed]]]=0
+            mask_inp = np.expand_dims(mask_inp, axis=2)
+            X_masked = X[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,num_pts_removed:]]]
+            return self.sess.run(self.z, feed_dict={self.x: X,self.mask: mask_inp}),X_masked
 
     def interpolate(self, x, y, steps):
         ''' Interpolate between and x and y input vectors in latent space.
@@ -268,7 +332,7 @@ class AutoEncoder(Neural_Net):
             z = np.expand_dims(z, 0)
         return self.sess.run((self.x_reconstr), {self.z: z})
 
-    def train(self, train_data, configuration, log_file=None, held_out_data=None):
+    def train(self, train_data, configuration, log_file=None, held_out_data=None,mask_type=0):
         c = configuration
         stats = []
 
@@ -276,7 +340,7 @@ class AutoEncoder(Neural_Net):
             create_dir(c.train_dir)
 
         for _ in xrange(c.training_epochs):
-            loss, duration = self._single_epoch_train(train_data, c)
+            loss, duration = self._single_epoch_train(train_data, c,mask_type=mask_type)
             epoch = int(self.sess.run(self.epoch.assign_add(tf.constant(1.0))))
             stats.append((epoch, loss, duration))
 
@@ -295,7 +359,7 @@ class AutoEncoder(Neural_Net):
                 self.train_writer.add_summary(summary, epoch)
 
             if held_out_data is not None and c.exists_and_is_not_none('held_out_step') and (epoch % c.held_out_step == 0):
-                loss, duration = self._single_epoch_train(held_out_data, c, only_fw=True)
+                loss, duration = self._single_epoch_train(held_out_data, c, only_fw=True,mask_type=mask_type)
                 print("Held Out Data :", 'forward time (minutes)=', "{:.4f}".format(duration / 60.0), "loss=", "{:.9f}".format(loss))
                 if log_file is not None:
                     log_file.write('On Held_Out: %04d\t%.9f\t%.4f\n' % (epoch, loss, duration / 60.0))

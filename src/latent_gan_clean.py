@@ -14,12 +14,13 @@ from tflearn import is_training
 
 
 class LatentGAN(GAN):
-    def __init__(self, name, learning_rate, n_output, noise_dim, discriminator, generator,lc_weight= 0.001, beta=0.9, batch_size=1, gen_kwargs={}, disc_kwargs={}, graph=None):
+    def __init__(self, name, learning_rate, n_output, noise_dim, discriminator, generator,lc_weight= 0.001, beta=0.9, batch_size=1, gen_kwargs={}, disc_kwargs={}, graph=None,masked_cloud_size=1024):
 
         self.noise_dim = noise_dim
         self.n_output = n_output
         self.discriminator = discriminator
         self.generator = generator
+        self.masked_cloud_size= masked_cloud_size
         # self.final_lc_weight = 0.01
 
         GAN.__init__(self, name, graph)
@@ -29,6 +30,7 @@ class LatentGAN(GAN):
             self.noise = tf.get_variable("noise", shape=[batch_size, noise_dim], initializer = tf.random_normal_initializer())                  # Noise vector.
             self.gt_data = tf.placeholder(tf.float32, shape=[None] + self.n_output)                                                           # Ground-truth.
             self.lc_wt = tf.placeholder(tf.float32)  # Ground-truth.
+            self.masked_cloud = tf.placeholder(tf.float32,shape=[None] + [self.masked_cloud_size,3])
 
             with tf.variable_scope('generator'):
                 self.generator_out = self.generator(self.noise, self.n_output)
@@ -64,7 +66,7 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_wgan64',lc_weight = 0.01):
+    def _single_epoch_train(self, batch,masked_cloud, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1}, save_path = '../data/gan_model/latent_wgan64',lc_weight = 0.01):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
@@ -90,7 +92,7 @@ class LatentGAN(GAN):
                 lc_wt = np.linspace(l, l/10.0, epoch)
                 for i in xrange(epoch):
 
-                    feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i]}
+                    feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i],self.masked_cloud:masked_cloud}
                     loss_g, loss_l2, _ = self.sess.run([self.loss_g, self.loss_l2, self.opt_g], feed_dict=feed_dict)
                     print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g))
 

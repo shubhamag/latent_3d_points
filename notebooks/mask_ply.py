@@ -148,10 +148,12 @@ X_idx = np.sum(X*np.expand_dims(temp, axis=2), axis=1, keepdims=True)
 X_diff = np.sum(np.square(X_idx - X), axis=2)
 X_diff_arg = np.argsort(X_diff,axis=1)
 mask_inp = np.ones(X.shape[:2],dtype = np.float32)
-mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,-num_pts_removed:]]]=0
+mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:, :num_pts_removed]]] = 0
 mask_inp = np.expand_dims(mask_inp, axis=2)
+X_masked = X[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:, num_pts_removed:]]]
 
-masked = mask_inp*X
+# masked = mask_inp*X
+masked = X_masked
 in_copy = masked
 
 

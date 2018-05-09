@@ -49,19 +49,27 @@ def generator(noise, n_output):
 # 		return self
 
 
-def trainGAN():
+def trainGAN(latent_vec=None,masked_cloud = None):
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/clean/lv_with_mask_5.txt')
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/test_lvs.txt')
-	latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/gt_noisy_vecs_masked.txt')
+	if(latent_vec is None):
+		latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/gt_noisy_vecs_masked.txt')
+
+
+
 	bneck_size = latent_vec.shape[1]
 	latent_vec = latent_vec[:10]
 	batch_size = latent_vec.shape[0]
+	if(masked_cloud is None):
+		print("Error, masked clouds not given")
+		exit()
 	# latent_vec_class = latent_dataset(latent_vec)
 	latentgan = LatentGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=64,
 						  discriminator=discriminator, generator=generator, beta=0.9, batch_size=batch_size)
 
 
-	(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,epoch = 20000)
+
+	(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = 20000)
 	print("l2_loss %4f gen %4f duration %f"%(d_loss, g_loss, time))
 
 

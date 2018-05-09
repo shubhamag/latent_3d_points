@@ -98,7 +98,7 @@ class PointNetAutoEncoder(AutoEncoder):
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
         self.train_step = self.optimizer.minimize(self.loss)
 
-    def _single_epoch_train(self, train_data, configuration, only_fw=False):
+    def _single_epoch_train(self, train_data, configuration, only_fw=False,mask_type=0):
         n_examples = train_data.num_examples
         epoch_loss = 0.
         batch_size = configuration.batch_size
@@ -108,7 +108,10 @@ class PointNetAutoEncoder(AutoEncoder):
         if only_fw:
             fit = self.reconstruct
         else:
-            fit = self.partial_fit_without_mask
+            if(mask_type==0):
+                fit = self.partial_fit_without_mask()
+            else:
+                fit = self.partial_fit(mask_type=mask_type)
 
         # Loop over all batches
         for _ in xrange(n_batches):
