@@ -49,7 +49,7 @@ def generator(noise, n_output):
 # 		return self
 
 
-def trainGAN(latent_vec=None,masked_cloud = None):
+def GAN_cleaner(latent_vec=None,masked_cloud = None):
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/clean/lv_with_mask_5.txt')
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/test_lvs.txt')
 	if(latent_vec is None):
@@ -74,5 +74,5 @@ def trainGAN(latent_vec=None,masked_cloud = None):
 
 
 if __name__ == '__main__':
-	trainGAN()
+	GAN_cleaner()
 	

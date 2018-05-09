@@ -134,6 +134,12 @@ for i in range(num_iters):
 
 np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
 
+clean_with_gan_and_reconstruct = True
+if(clean_with_gan_and_reconstruct):
+    from latent_3d_points.notebooks.train_latent_gan_clean import GAN_cleaner
+    GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked,ae=ae)
+
+
 # lv_batch = lv_array[0:10,:]
 #
 # reconstructions = ae.decode(lv_batch)

@@ -168,8 +168,13 @@ class AutoEncoder(Neural_Net):
             exit()
 
         if(mask_type ==1):
+            mask_inp = np.ones(X.shape[:2],dtype = np.float32)
+            mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])]]=0
+            mask_inp = np.expand_dims(mask_inp, axis=2)
 
-            mask = np.random.randint(2,size=X.shape)
+        elif(mask_type==2):
+
+            # mask = np.random.randint(2,size=X.shape)
             indx = np.random.randint(X.shape[1], size=X.shape[0])
             temp = np.zeros(X.shape[:2])
             temp[[np.arange(X.shape[0]), indx]]=1
@@ -178,11 +183,6 @@ class AutoEncoder(Neural_Net):
             X_diff_arg = np.argsort(X_diff,axis=1)
             mask_inp = np.ones(X.shape[:2],dtype = np.float32)
             mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:, :num_pts_removed]]]=0
-            mask_inp = np.expand_dims(mask_inp, axis=2)
-
-        elif(mask_type==2):
-            mask_inp = np.ones(X.shape[:2],dtype = np.float32)
-            mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), np.random.choice(X.shape[1],[X.shape[0],num_pts_removed])]]=0
             mask_inp = np.expand_dims(mask_inp, axis=2)
         try:
             if GT is not None:
