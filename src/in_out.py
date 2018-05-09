@@ -186,6 +186,7 @@ class PointCloudDataSet(object):
     def shuffle_data(self, seed=None):
         if seed is not None:
             np.random.seed(seed)
+        print("shuffling pc data")
         perm = np.arange(self.num_examples)
         np.random.shuffle(perm)
         self.point_clouds = self.point_clouds[perm]
@@ -201,7 +202,8 @@ class PointCloudDataSet(object):
         self._index_in_epoch += batch_size
         if self._index_in_epoch > self.num_examples:
             self.epochs_completed += 1  # Finished epoch.
-            # self.shuffle_data(seed) #shuffle data after each epoch
+            self.shuffle_data(seed) #shuffle data after each epoch
+
             # Start next epoch
             start = 0
             self._index_in_epoch = batch_size

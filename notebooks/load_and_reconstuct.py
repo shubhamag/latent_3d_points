@@ -174,12 +174,12 @@ else:
     # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/cleaned_vector_test_0.01.txt')
     # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/test_lvs.txt') ##directly use input vecs
     # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/clean/lv_with_mask_5.txt') ##noisy vecs
-    lv_array  = np.loadtxt('cleaned_puregan2_0.01.txt') ##noisy vecs
+    lv_array  = np.loadtxt('cleaned_puregan2_0.5.txt') ##noisy vecs
     lv_batch = lv_array
 
     reconstructions = ae.decode(lv_batch)
     for i in range(5):
-        write_ply(pref + "airplane_puregan2_0.01_cleaned_" + str(i) + "_.ply", reconstructions[i, :, :])
+        write_ply(pref + "airplane_puregan_nosub_0.5_cleaned_" + str(i) + "_.ply", reconstructions[i, :, :])
 
 
 
