@@ -114,7 +114,7 @@ ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/'
 
 
 
-num_pts_to_mask = 1000
+num_pts_to_mask = 5
 latent_vec_file = '/home/shubham/latent_3d_points/notebooks/gt_noisy_vecs_masked.txt'
 
 
@@ -132,7 +132,7 @@ for i in range(num_iters):
     lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
 
-np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
+# np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
 
 clean_with_gan_and_reconstruct = True
 if(clean_with_gan_and_reconstruct):

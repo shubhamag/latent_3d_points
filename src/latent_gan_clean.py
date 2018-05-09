@@ -69,9 +69,11 @@ class LatentGAN(GAN):
 
             d_params = [v for v in train_vars if v.name.startswith(name + '/discriminator/')]
             g_params = [v for v in train_vars if v.name.startswith(name + '/generator/')]
-            noise_params = [v for v in train_vars if 'noise' in v.name]
-            self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_chd, noise_params)
-            self.opt_l2 = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_l2, noise_params)
+            self.noise_params = [v for v in train_vars if 'noise' in v.name]
+
+            # self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_chd, self.noise_params)
+            self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_l2, self.noise_params)
+            self.opt_l2 = self.optimizer(learning_rate, beta, 0*self.loss_g+self.lc_wt *self.loss_l2, self.noise_params) #ignoring loss g2
             self.saver = tf.train.Saver(d_params+g_params, max_to_keep=1)
             self.init = tf.global_variables_initializer()
 
@@ -99,25 +101,31 @@ class LatentGAN(GAN):
 
 
         is_training(True, session=self.sess)
-        lc_wt_mat = [0.0001, 0.0005,0.001,0.005,0.01,0.05]
+        # lc_wt_mat = [0.0001, 0.0005,0.001,0.005,0.01,0.05]
+        lc_wt_mat = [0.01,0.05,0.1,0.5]
         g_losses= []
         l2_losses=[]
+
+        # for i in xrange(epoch):
+        #     feed_dict = {self.gt_data: batch, self.lc_wt: 5}
+        #     loss_l2, _,noise_params = self.sess.run([self.loss_l2, self.opt_l2,self.noise_params[0]], feed_dict=feed_dict)
+        #     print("l2_loss:" + str(loss_l2))
+
+
         for l in lc_wt_mat:
-            self.sess.run(tf.global_variables_initializer())
+            # tf.assign(self.noise_params[0],noise_params)
+            self.sess.run(tf.variables_initializer(self.noise_params))
 
             try:
                 # Loop over all batches
                 is_training(True, session=self.sess)
                 lc_wt = np.linspace(l, l/10.0, epoch)
-                for i in xrange(epoch):
-                    feed_dict = {self.gt_data: batch, self.lc_wt:0}
-                    loss_l2, _ = self.sess.run([self.loss_l2, self.opt_l2], feed_dict=feed_dict)
-                    print("l2_loss:" + str(loss_l2))
+
                 for i in xrange(epoch):
 
                     feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i],self.masked_cloud:masked_cloud}
-                    loss_g, loss_l2, _ = self.sess.run([self.loss_g, self.loss_l2, self.opt_g], feed_dict=feed_dict)
-                    print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g))
+                    loss_g, loss_l2, _,loss_chd = self.sess.run([self.loss_g, self.loss_l2, self.opt_g,self.loss_chd], feed_dict=feed_dict)
+                    print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g) + " loss chamfer:" + str(loss_chd))
 
                     # Compute average loss
                     epoch_loss_l2 += loss_l2
@@ -132,7 +140,7 @@ class LatentGAN(GAN):
             l2_losses.append(loss_l2)
 
 
-            save_path  ='gt_wgan64_cleaned_' + str(l) +  '.txt'
+            save_path  ='cleaned_puregan2_' + str(l) +  '.txt'
             np.savetxt(save_path, cleaned_vector)
             print("cleaned vecs saved to "+save_path)
 
