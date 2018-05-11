@@ -1,11 +1,4 @@
 
-# coding: utf-8
-
-# ## This notebook will help you train a vanilla Point-Cloud AE with the basic architecture we used in our paper.
-#     (it assumes latent_3d_points is in the PYTHONPATH and the structural losses have been compiled)
-
-# In[1]:
-
 
 import os.path as osp
 
@@ -21,54 +14,19 @@ from latent_3d_points.src.IO import write_ply
 import numpy as np
 import math
 import pdb
-# In[2]:
-#
-#
-# get_ipython().run_line_magic('load_ext', 'autoreload')
-# get_ipython().run_line_magic('autoreload', '2')
-# get_ipython().run_line_magic('matplotlib', 'inline')
-#
-
-# Define Basic Parameters
-
-# In[3]:
 
 
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae'
+experiment_name = 'single_class_ae/car_train'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
-# class_name = raw_input('Give me the class name (e.g. "chair"): ').lower()
-#
-#
-# # Load Point-Clouds
-#
-# # In[4]:
-#
-#
+
 # syn_id = snc_category_to_synth_id()[class_name]
 # class_dir = osp.join(top_in_dir , syn_id)
-class_dir = '/home/shubham/latent_3d_points/data/airplane'
-all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
 
-
-# Load default training parameters (some of which are listed beloq). For more details please print the configuration object.
-# 
-#     'batch_size': 50   
-#     
-#     'denoising': False     (# by default AE is not denoising)
-# 
-#     'learning_rate': 0.0005
-# 
-#     'z_rotate': False      (# randomly rotate models of each batch)
-#     
-#     'loss_display_step': 1 (# display loss at end of these many epochs)
-#     'saver_step': 10       (# over how many epochs to save neural-network)
-
-# In[5]:
 
 
 train_params = default_train_params()
@@ -91,10 +49,12 @@ print dec_args
 # In[10]:
 
 
+batch_size =int(10)
 conf = Conf(n_input = [n_pc_points, 3],
             loss = ae_loss,
             training_epochs = train_params['training_epochs'],
-            batch_size = train_params['batch_size'],
+            # batch_size = train_params['batch_size'],
+            batch_size = batch_size,
             denoising = train_params['denoising'],
             learning_rate = train_params['learning_rate'],
             train_dir = train_dir,
@@ -126,26 +86,19 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 # In[1]:
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',410)
-ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
-
-# buf_size = 1 # Make 'training_stats' file to flush each output line regarding training.
-# fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
-# train_stats = ae.train(all_pc_data, conf, log_file=fout)
-# fout.close()
+ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/car_train/',660)
 
 
-# Get a batch of reconstuctions and their latent-codes.
+class_dir = '/home/shubham/latent_3d_points/data/car_train'
+all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
 
-# In[13]:
-
-# latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/'+ str(class_name)+'/' + str(class_name) + "_latent_with_mask.txt"
-latent_vec_file = '/home/shubham/latent_3d_points/data/single_class_ae/' + "airplane_full.txt"
+latent_vec_file = '/home/shubham/latent_3d_points/data/' + "car_train_ae_train.txt"
 # feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
 
 full_pc,_,_ = all_pc_data.full_epoch_data()
 num_input = all_pc_data.num_examples
 
-batch_size =int(10)
+
 num_iters = int(math.ceil(num_input/float(batch_size)))
 array_row_size = int(num_iters*batch_size)
 print "lv num rows:" + str(array_row_size)
@@ -153,22 +106,24 @@ lv_array = np.zeros([ array_row_size, bneck_size])
 for i in range(num_iters):
     feed_pc, feed_model_names, _ = all_pc_data.next_batch(batch_size)
     # latent_codes = ae.transform(feed_pc) ##also might want to switch to encoder_with_convs_and_symmetry in ae_template, tho not necessary###
-    latent_codes = ae.transform(feed_pc)
+    latent_codes,mask = ae.transform(feed_pc)
     lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
 
 np.savetxt(latent_vec_file,lv_array)
 print ("Latent codes:")
 print (str(latent_codes))
+print(mask)
+pdb.set_trace()
 
 # pdb.set_trace()
 
-# reconstructions = ae.reconstruct(feed_pc)
+reconstructions = ae.reconstruct(feed_pc)
 # shape2 = reconstructions[0][2,:,:]
 # print "loss : " + str(reconstructions[1])
-# write_ply("airplane1.ply",reconstructions[0][1,:,:])
-# write_ply("airplane2.ply",reconstructions[0][2,:,:])
-# write_ply("airplane3.ply",reconstructions[0][3,:,:])
+write_ply("car1.ply",reconstructions[0][1,:,:])
+write_ply("car2.ply",reconstructions[0][2,:,:])
+write_ply("car3.ply",reconstructions[0][3,:,:])
 # write_ply("airplane4.ply",reconstructions[0][4,:,:])
 # pdb.set_trace()
 # print "reconstructed, shape:" + str(reconstructions.shape)

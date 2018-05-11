@@ -110,9 +110,11 @@ class PointNetAutoEncoder(AutoEncoder):
         else:
             if(mask_type==0):
                 fit = self.partial_fit_without_mask
+                print("using partial_fit_without_mask")
             else:
                 import functools
                 fit = functools.partial(self.partial_fit,mask_type=mask_type)
+                print("training partial_fit with mask_type " + str(mask_type))
 
         # Loop over all batches
         for _ in xrange(n_batches):

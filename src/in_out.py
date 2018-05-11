@@ -202,7 +202,7 @@ class PointCloudDataSet(object):
         self._index_in_epoch += batch_size
         if self._index_in_epoch > self.num_examples:
             self.epochs_completed += 1  # Finished epoch.
-            self.shuffle_data(seed) #shuffle data after each epoch
+            # self.shuffle_data(seed) #shuffle data after each epoch
 
             # Start next epoch
             start = 0

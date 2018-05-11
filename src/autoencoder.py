@@ -134,7 +134,7 @@ class AutoEncoder(Neural_Net):
             The loss of the mini-batch.
             The reconstructed (output) point-clouds.
         '''
-        print("training without mask")
+        # print("training without mask")
 
         try:
             if GT is not None:
@@ -262,7 +262,7 @@ class AutoEncoder(Neural_Net):
 
     def transform(self, X):
         '''Transform data by mapping it into the latent space.'''
-        return self.sess.run(self.z, feed_dict={self.x: X})
+        return self.sess.run([self.z,self.mask], feed_dict={self.x: X})
 
     def transform_with_mask(self,X,num_pts_removed = 100,mask_type=0):
         print ("Transform with mask called, with mask type " +str(mask_type) + " "   + str(num_pts_removed) + " points removed")
