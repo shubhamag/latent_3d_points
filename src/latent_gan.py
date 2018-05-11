@@ -104,7 +104,7 @@ class LatentGAN(GAN):
         duration = time.time() - start_time
         return (epoch_loss_d, epoch_loss_g), duration
 
-    def generator_out(self, batch_size=50, noise_params={'mu':0, 'sigma':1}):
+    def generate_lv(self, batch_size=50, noise_params={'mu':0, 'sigma':1}):
         z = self.generator_noise_distribution(batch_size, self.noise_dim, **noise_params)
         feed_dict = {self.noise: z}
         generator_out = self.sess.run([self.generator_out], feed_dict=feed_dict)
