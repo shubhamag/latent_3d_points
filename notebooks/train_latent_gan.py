@@ -18,11 +18,12 @@ def generator(noise, n_output):
 	return layer
 
 class latent_dataset:
-	def __init__(self, data):
+	def __init__(self, data, z_data):
 		self.num_examples = data.shape[0]
 		self._index_in_epoch=0
 		self.point_clouds = data
 		self.epochs_completed = 0
+		self.z_data = z_data
 
 	def next_batch(self, batch_size, seed=None):
 		'''Return the next batch_size examples from this data set.
@@ -37,7 +38,7 @@ class latent_dataset:
 			self._index_in_epoch = batch_size
 		end = self._index_in_epoch
 
-		return self.point_clouds[start:end], None, None
+		return self.point_clouds[start:end], self.z_data[start:end], None, None
 
 
 	def shuffle_data(self, seed=None):
@@ -46,13 +47,15 @@ class latent_dataset:
 		perm = np.arange(self.num_examples)
 		np.random.shuffle(perm)
 		self.point_clouds = self.point_clouds[perm]
+		self.z_data = self.z_data[perm]
 		return self
 
 
 def trainGAN():
 	latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full.txt')
 	bneck_size = latent_vec.shape[1]
-	latent_vec_class = latent_dataset(latent_vec)
+	z_data = self.generator_noise_distribution(n_examples, self.noise_dim, **noise_params)
+	latent_vec_class = latent_dataset(latent_vec, z_data)
 	latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size], noise_dim = 64, discriminator = discriminator, generator = generator, beta=0.9)
 	for i in xrange(num_epoch):
 		(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec_class,epoch = i)
