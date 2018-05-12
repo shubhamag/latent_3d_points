@@ -78,6 +78,14 @@ class PointNetAutoEncoder(AutoEncoder):
             _, self.disc_n = self.discriminator(noise, reuse=True, scope = scope, **disc_kwargs)
         self.loss_d = tf.reduce_mean(self.disc_n) - tf.reduce_mean(self.disc_z)
         self.loss_g = tf.reduce_mean(self.disc_z)
+        epsilon = tf.random_uniform([], 0.0, 1.0)
+        x_hat = noise*epsilon + (1-epsilon)*self.z
+        with tf.variable_scope('discriminator') as scope:
+            self.d_hat_prob, self.d_hat = self.discriminator(x_hat, reuse=True, scope=scope)
+        gradients = tf.gradients(self.d_hat, x_hat)[0]
+        slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
+        gradient_penalty = 10*tf.reduce_mean((slopes-1.0)**2)
+        self.loss_d += gradient_penalty
 
         if c.loss == 'chamfer':
             cost_p1_p2, _, cost_p2_p1, _ = nn_distance(self.x_reconstr, self.gt)
