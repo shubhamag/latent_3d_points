@@ -47,6 +47,7 @@ conf = Conf(n_input = [n_pc_points, 3],
             decoder = decoder,
             encoder_args = enc_args,
             decoder_args = dec_args
+            adv_ae = False
            )
 conf.experiment_name = experiment_name
 conf.held_out_step = 5   # How often to evaluate/print out loss on 

@@ -23,7 +23,7 @@ class Configuration():
                  training_epochs=200, batch_size=10, learning_rate=0.001, denoising=False,
                  saver_step=None, train_dir=None, z_rotate=False, loss='chamfer', gauss_augment=None,
                  saver_max_to_keep=None, loss_display_step=1, debug=False,
-                 n_z=None, n_output=None, latent_vs_recon=1.0, consistent_io=None):
+                 n_z=None, n_output=None, latent_vs_recon=1.0, consistent_io=None, adv_ae=False):
 
         # Parameters for any AE
         self.n_input = n_input
@@ -45,7 +45,7 @@ class Configuration():
         self.saver_max_to_keep = saver_max_to_keep
         self.training_epochs = training_epochs
         self.debug = debug
-
+        self.adv_ae = adv_ae
 
         # Used in VAE
         self.latent_vs_recon = np.array([latent_vs_recon], dtype=np.float32)[0]
@@ -188,11 +188,13 @@ class AutoEncoder(Neural_Net):
             if GT is not None:
 
                 _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.gt: GT, self.mask: mask_inp})
+                _, loss, recon = self.sess.run((self.train_step, self.loss_d, self.x_reconstr), feed_dict={self.x: X, self.gt: GT, self.mask: mask_inp})
             else:
                 if(self.train_counter==0):
                     print ("training with random binary upsample mask")
                     self.train_counter+=1
                 _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.mask: mask_inp})
+                _, loss, recon = self.sess.run((self.train_step, self.loss_d, self.x_reconstr), feed_dict={self.x: X, self.mask: mask_inp})
 
             is_training(False, session=self.sess)
         except Exception:
@@ -201,6 +203,16 @@ class AutoEncoder(Neural_Net):
             is_training(False, session=self.sess)
         return recon, loss
 
+
+
+    def discriminator(data, reuse=None, scope='disc'):
+        with tf.variable_scope(scope, reuse=reuse):
+            layer = tf.contrib.layers.fully_connected(data, 256)
+            # layer = tf.contrib.layers.fully_connected(layer, 512)
+            layer = tf.contrib.layers.fully_connected(layer, 128)
+            layer = tf.contrib.layers.fully_connected(layer, 1, activation_fn=None)
+            prob = tf.nn.sigmoid(layer)
+        return prob, layer
     def reconstruct(self, X, GT=None, compute_loss=True):
         '''Use AE to reconstruct given data.
         GT will be used to measure the loss (e.g., if X is a noisy version of the GT)'''
