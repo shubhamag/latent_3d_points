@@ -87,12 +87,12 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch,masked_cloud, epoch, save_path = '../data/gan_model/latent_wgan64',lc_weight = 0.01):
+    def _single_epoch_train(self, batch,masked_cloud, epoch, save_path = '../data/gan_model/latent_wgan64',restore_epoch='99',lc_weight = 0.01):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
         '''
-        self.saver.restore(self.sess,save_path+'-99')
+        self.saver.restore(self.sess,save_path+'-' + restore_epoch)
         # n_examples = batch.num_examples
         epoch_loss_l2 = 0.
         epoch_loss_g = 0.

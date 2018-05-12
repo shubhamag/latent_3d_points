@@ -95,7 +95,9 @@ def trainGAN(ae=None):
     bneck_size = latent_vec.shape[1]
     noise_dim_size = 64
     z_data = np.random.normal(0, 1, (latent_vec.shape[0], noise_dim_size))
+    z_data = z_data * np.random.normal(0, 0.1)
     norm = np.sqrt(np.sum(z_data ** 2, axis=1))
+    norm = np.maximum(norm,np.ones_like(norm))
     z_data = z_data / norm[:, np.newaxis]
 
     latent_vec_class = latent_dataset(latent_vec, z_data)
@@ -114,14 +116,14 @@ def trainGAN(ae=None):
     for i in xrange(num_epoch):
         (d_loss, g_loss,z_loss), time = latentgan._single_epoch_train(latent_vec_class,epoch = i,opt_gz=opt_gz,save_path=save_path)
         print("epoch %4d disc %4f gen %4f z_loss  %4f  duration %f"%(i,d_loss, g_loss, z_loss,time))
-        if(z_loss < 6.2 and cov_lv>0.6):
-            print("Switching to opt gz")
-            opt_gz=True
+        # if(z_loss < 6.2 and cov_lv>0.6):
+        #     print("Switching to opt gz")
+        #     opt_gz=True
 
 
         ##VALIDATION##
-        # gen_lv = latentgan.generate_lv(batch_size=validation_batch_size)
-        gen_lv = latentgan.generate_lv_with_z(batch_size=500,z_data=latent_vec_class.z_data[:500])
+        gen_lv = latentgan.generate_lv(batch_size=500)
+        # gen_lv = latentgan.generate_lv_with_z(batch_size=500,z_data=latent_vec_class.z_data[:500])
         distances, indices = nbrs.kneighbors(gen_lv)
         print("vector distances mean =" + str(np.mean(distances)))
         unique_matches = np.unique(indices)

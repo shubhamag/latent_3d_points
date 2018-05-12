@@ -7,7 +7,8 @@ num_epoch = 100
 def discriminator(data, reuse=None, scope='disc'):
 	with tf.variable_scope(scope, reuse=reuse):
 		layer = tf.contrib.layers.fully_connected(data, 256)
-		layer = tf.contrib.layers.fully_connected(layer, 512)
+		# layer = tf.contrib.layers.fully_connected(layer, 512)
+		layer = tf.contrib.layers.fully_connected(layer, 128)
 		layer = tf.contrib.layers.fully_connected(layer, 1, activation_fn=None)
 		prob = tf.nn.sigmoid(layer)
 	return prob, layer
@@ -54,7 +55,7 @@ def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None):
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/clean/lv_with_mask_5.txt')
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/test_lvs.txt')
 	if(latent_vec is None):
-		latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/gt_noisy_vecs_masked.txt')
+		latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/gt_noisy_airplane_full.txt')
 
 	bneck_size = latent_vec.shape[1]
 	latent_vec = latent_vec[:10]
@@ -66,7 +67,7 @@ def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None):
 	latentgan = LatentGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=64,
 						  discriminator=discriminator, generator=generator, beta=0.9, batch_size=batch_size, masked_cloud_size = masked_cloud.shape[1], ae=ae)
 
-	(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = 20000)
+	(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = 20000,save_path='../data/gan_model/latent_wganlgo2_airplane_full',restore_epoch='738')
 	print("l2_loss %4f gen %4f duration %f"%(d_loss, g_loss, time))
 
 

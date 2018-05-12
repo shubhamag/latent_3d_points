@@ -1,12 +1,4 @@
 
-# coding: utf-8
-
-# ## This notebook will help you train a vanilla Point-Cloud AE with the basic architecture we used in our paper.
-#     (it assumes latent_3d_points is in the PYTHONPATH and the structural losses have been compiled)
-
-# In[1]:
-
-
 import os.path as osp
 
 from latent_3d_points.src.ae_templates import mlp_architecture_ala_iclr_18, default_train_params
@@ -27,58 +19,24 @@ import pdb
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae'
+experiment_name = 'single_class_ae/airplane_full'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
-# class_name = raw_input('Give me the class name (e.g. "chair"): ').lower()
-#
-#
-# # Load Point-Clouds
-#
-# # In[4]:
-#
-#
-# syn_id = snc_category_to_synth_id()[class_name]
-# class_dir = osp.join(top_in_dir , syn_id)
-class_dir = '/home/shubham/latent_3d_points/notebooks/gt'
-all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
 
 
-# Load default training parameters (some of which are listed beloq). For more details please print the configuration object.
-# 
-#     'batch_size': 50   
-#     
-#     'denoising': False     (# by default AE is not denoising)
-# 
-#     'learning_rate': 0.0005
-# 
-#     'z_rotate': False      (# randomly rotate models of each batch)
-#     
-#     'loss_display_step': 1 (# display loss at end of these many epochs)
-#     'saver_step': 10       (# over how many epochs to save neural-network)
-
-# In[5]:
 
 
 train_params = default_train_params()
 
-
-# In[7]:
 
 
 encoder, decoder, enc_args, dec_args = mlp_architecture_ala_iclr_18(n_pc_points, bneck_size)
 train_dir = create_dir(osp.join(top_out_dir, experiment_name))
 
 
-# In[9]:
-
-
 print enc_args
 print dec_args
-
-
-# In[10]:
 
 
 conf = Conf(n_input = [n_pc_points, 3],
@@ -107,7 +65,8 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
-ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
+ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full/',600)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',410)
 
 ##use best encoder and GAN:
@@ -115,10 +74,12 @@ ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/'
 
 
 num_pts_to_mask = 5
-latent_vec_file = '/home/shubham/latent_3d_points/notebooks/gt_noisy_vecs_masked.txt'
+latent_vec_file = '/home/shubham/latent_3d_points/notebooks/gt_noisy_airplane_full.txt'
 
 
-# full_pc,_,_ = all_pc_data.full_epoch_data()
+class_dir = '/home/shubham/latent_3d_points/notebooks/gt'
+all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
+
 num_input = all_pc_data.num_examples
 batch_size =int(10)
 num_iters = int(math.ceil(num_input/float(batch_size)))

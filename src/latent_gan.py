@@ -71,7 +71,10 @@ class LatentGAN(GAN):
 
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         z =np.random.normal(mu, sigma, (n_samples, ndims))
+        z = z *np.random.normal(0,0.1)
         norm = np.sqrt(np.sum(z ** 2, axis=1))
+        norm = np.maximum(norm, np.ones_like(norm))
+
         z = z / norm[:, np.newaxis]
         return z
 
@@ -108,6 +111,7 @@ class LatentGAN(GAN):
                 
                 z_update = z_data - self.learning_rate * z_grad[0]
                 norm = np.sqrt(np.sum(z_update ** 2, axis=1))
+                norm = np.maximum(norm,np.ones_like(norm))
                 z_update_norm = z_update / norm[:, np.newaxis]
                 z_data[:] = z_update_norm
                 # print(str(np.sqrt(np.sum(z ** 2, axis=1))))

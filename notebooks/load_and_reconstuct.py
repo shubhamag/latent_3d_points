@@ -1,12 +1,4 @@
 
-# coding: utf-8
-
-# ## This notebook will help you train a vanilla Point-Cloud AE with the basic architecture we used in our paper.
-#     (it assumes latent_3d_points is in the PYTHONPATH and the structural losses have been compiled)
-
-# In[1]:
-
-
 import os.path as osp
 
 from latent_3d_points.src.ae_templates import mlp_architecture_ala_iclr_18, default_train_params
@@ -20,15 +12,6 @@ from latent_3d_points.src.tf_utils import reset_tf_graph
 from latent_3d_points.src.IO import write_ply
 import numpy as np
 import pdb
-# In[2]:
-#
-#
-# get_ipython().run_line_magic('load_ext', 'autoreload')
-# get_ipython().run_line_magic('autoreload', '2')
-# get_ipython().run_line_magic('matplotlib', 'inline')
-#
-
-# Define Basic Parameters
 
 # In[3]:
 
@@ -36,60 +19,23 @@ import pdb
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae'
+experiment_name = 'single_class_ae/airplane_full'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
-# class_name = raw_input('Give me the class name (e.g. "chair"): ').lower() #uncomment to ask class
 
-
-# Load Point-Clouds
-
-# In[4]:
-
-
-# syn_id = snc_category_to_synth_id()[class_name]
-# class_dir = osp.join(top_in_dir , syn_id)
-##Test data
-class_dir  = '/home/shubham/latent_3d_points/notebooks/gt/'
-all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
-
-
-# Load default training parameters (some of which are listed beloq). For more details please print the configuration object.
-# 
-#     'batch_size': 50   
-#     
-#     'denoising': False     (# by default AE is not denoising)
-# 
-#     'learning_rate': 0.0005
-# 
-#     'z_rotate': False      (# randomly rotate models of each batch)
-#     
-#     'loss_display_step': 1 (# display loss at end of these many epochs)
-#     'saver_step': 10       (# over how many epochs to save neural-network)
-
-# In[5]:
 
 
 train_params = default_train_params()
-
-
-# In[7]:
 
 
 encoder, decoder, enc_args, dec_args = mlp_architecture_ala_iclr_18(n_pc_points, bneck_size)
 train_dir = create_dir(osp.join(top_out_dir, experiment_name))
 
 
-# In[9]:
-
 
 print enc_args
 print dec_args
-
-
-# In[10]:
-
 
 conf = Conf(n_input = [n_pc_points, 3],
             loss = ae_loss,
@@ -112,20 +58,14 @@ conf.held_out_step = 5   # How often to evaluate/print out loss on
 conf.save(osp.join(train_dir, 'configuration'))
 
 
-# Build AE Model.
-
-# In[11]:
-
 
 reset_tf_graph()
 ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 
-# Train the AE (save output to train_stats.txt) 
-
-# In[1]:
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
-ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
+# ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
+ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full/',600)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/',900)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/with_global_with_upsampling/',890)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/with_global_with_upsampling/trials',1)
@@ -139,6 +79,9 @@ reconstruct_from_latent_vectors = True
 pref = "./recon_from_ac/"
 
 if(reconstruct_from_latent_vectors == False):
+    class_dir = '/home/shubham/latent_3d_points/notebooks/gt/'
+    all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
+
     feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
     # in_copy = feed_pc.copy()
     # rmask = np.random.randint(2, size=in_copy.shape[:2])
@@ -179,7 +122,7 @@ else:
 
     reconstructions = ae.decode(lv_batch)
     for i in range(5):
-        write_ply(pref + "airplane_puregan_nosub_0.5_cleaned_" + str(i) + "_.ply", reconstructions[i, :, :])
+        write_ply(pref + "airplane_full_newgansglo_cleaned_" + str(i) + "_.ply", reconstructions[i, :, :])
 
 
 
