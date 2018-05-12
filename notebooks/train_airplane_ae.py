@@ -15,7 +15,7 @@ ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
 
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
-experiment_name = 'single_class_ae/airplane_full_dropout'
+experiment_name = 'single_class_ae/airplane_full_adv'
 
 
 print ("training airplane with no mask")
@@ -46,8 +46,8 @@ conf = Conf(n_input = [n_pc_points, 3],
             encoder = encoder,
             decoder = decoder,
             encoder_args = enc_args,
-            decoder_args = dec_args
-            adv_ae = False
+            decoder_args = dec_args,
+            adv_ae = True
            )
 conf.experiment_name = experiment_name
 conf.held_out_step = 5   # How often to evaluate/print out loss on 

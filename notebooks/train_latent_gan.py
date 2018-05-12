@@ -93,7 +93,7 @@ def trainGAN(ae=None):
     save_path = '../data/gan_model/latent_wganlgo2_airplane_full'
 
     bneck_size = latent_vec.shape[1]
-    noise_dim_size = 64
+    noise_dim_size = 32
     z_data = np.random.normal(0, 1, (latent_vec.shape[0], noise_dim_size))
     z_data = z_data * np.random.normal(0, 0.1)
     norm = np.sqrt(np.sum(z_data ** 2, axis=1))

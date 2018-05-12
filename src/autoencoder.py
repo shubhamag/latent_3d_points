@@ -135,6 +135,7 @@ class AutoEncoder(Neural_Net):
             The reconstructed (output) point-clouds.
         '''
         # print("training without mask")
+        loss_d = 0
 
         try:
             if GT is not None:
@@ -144,14 +145,17 @@ class AutoEncoder(Neural_Net):
                 if(self.train_counter==0):
                     print ("training WITHOUT mask")
                     self.train_counter+=1
-                _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X,})
+                _, loss, recon,loss_g = self.sess.run((self.train_step, self.loss, self.x_reconstr,self.loss_g), feed_dict={self.x: X,})
+                if (self.configuration.adv_ae == True):
+                    loss = loss- loss_g
+                    _, loss_d = self.sess.run((self.d_step, self.loss_d), feed_dict={self.x: X})
 
             is_training(False, session=self.sess)
         except Exception:
             raise
         finally:
             is_training(False, session=self.sess)
-        return recon, loss
+        return recon, loss,loss_d
 
     def partial_fit(self, X, GT=None,num_pts_removed = 1000,mask_type=0):
         '''Trains the model with mini-batches of input data.
@@ -188,13 +192,15 @@ class AutoEncoder(Neural_Net):
             if GT is not None:
 
                 _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.gt: GT, self.mask: mask_inp})
-                _, loss, recon = self.sess.run((self.train_step, self.loss_d, self.x_reconstr), feed_dict={self.x: X, self.gt: GT, self.mask: mask_inp})
+                if (self.configuration.adv_ae == True):
+                    _, loss, recon = self.sess.run((self.d_step, self.loss_d, self.x_reconstr), feed_dict={self.x: X, self.gt: GT, self.mask: mask_inp})
             else:
                 if(self.train_counter==0):
                     print ("training with random binary upsample mask")
                     self.train_counter+=1
                 _, loss, recon = self.sess.run((self.train_step, self.loss, self.x_reconstr), feed_dict={self.x: X, self.mask: mask_inp})
-                _, loss, recon = self.sess.run((self.train_step, self.loss_d, self.x_reconstr), feed_dict={self.x: X, self.mask: mask_inp})
+                if (self.configuration.adv_ae == True):
+                    _, loss, recon = self.sess.run((self.d_step, self.loss_d, self.x_reconstr), feed_dict={self.x: X, self.mask: mask_inp})
 
             is_training(False, session=self.sess)
         except Exception:
@@ -205,14 +211,14 @@ class AutoEncoder(Neural_Net):
 
 
 
-    def discriminator(data, reuse=None, scope='disc'):
-        with tf.variable_scope(scope, reuse=reuse):
-            layer = tf.contrib.layers.fully_connected(data, 256)
-            # layer = tf.contrib.layers.fully_connected(layer, 512)
-            layer = tf.contrib.layers.fully_connected(layer, 128)
-            layer = tf.contrib.layers.fully_connected(layer, 1, activation_fn=None)
-            prob = tf.nn.sigmoid(layer)
-        return prob, layer
+    # def discriminator(data, reuse=None, scope='disc'):
+    #     with tf.variable_scope(scope, reuse=reuse):
+    #         layer = tf.contrib.layers.fully_connected(data, 256)
+    #         # layer = tf.contrib.layers.fully_connected(layer, 512)
+    #         layer = tf.contrib.layers.fully_connected(layer, 128)
+    #         layer = tf.contrib.layers.fully_connected(layer, 1, activation_fn=None)
+    #         prob = tf.nn.sigmoid(layer)
+    #     return prob, layer
     def reconstruct(self, X, GT=None, compute_loss=True):
         '''Use AE to reconstruct given data.
         GT will be used to measure the loss (e.g., if X is a noisy version of the GT)'''
@@ -332,12 +338,13 @@ class AutoEncoder(Neural_Net):
             create_dir(c.train_dir)
 
         for _ in xrange(c.training_epochs):
-            loss, duration = self._single_epoch_train(train_data, c,mask_type=mask_type)
+            loss, duration,loss_d = self._single_epoch_train(train_data, c,mask_type=mask_type)
             epoch = int(self.sess.run(self.epoch.assign_add(tf.constant(1.0))))
-            stats.append((epoch, loss, duration))
+            stats.append((epoch, loss, duration,loss_d))
 
             if epoch % c.loss_display_step == 0:
                 print("Epoch:", '%04d' % (epoch), 'training time (minutes)=', "{:.4f}".format(duration / 60.0), "loss=", "{:.9f}".format(loss))
+                print("loss_d   %4f"%(loss_d))
                 if log_file is not None:
                     log_file.write('%04d\t%.9f\t%.4f\n' % (epoch, loss, duration / 60.0))
 
@@ -351,7 +358,7 @@ class AutoEncoder(Neural_Net):
                 self.train_writer.add_summary(summary, epoch)
 
             if held_out_data is not None and c.exists_and_is_not_none('held_out_step') and (epoch % c.held_out_step == 0):
-                loss, duration = self._single_epoch_train(held_out_data, c, only_fw=True,mask_type=mask_type)
+                loss, duration,loss_d = self._single_epoch_train(held_out_data, c, only_fw=True,mask_type=mask_type)
                 print("Held Out Data :", 'forward time (minutes)=', "{:.4f}".format(duration / 60.0), "loss=", "{:.9f}".format(loss))
                 if log_file is not None:
                     log_file.write('On Held_Out: %04d\t%.9f\t%.4f\n' % (epoch, loss, duration / 60.0))

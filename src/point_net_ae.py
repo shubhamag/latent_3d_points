@@ -69,12 +69,15 @@ class PointNetAutoEncoder(AutoEncoder):
             self.sess.run(self.init)
 
     def _create_loss(self):
+
         c = self.configuration
-        disc_z, _ = self.discriminator(self.z, scope = 'disc_ae')
-        noise = tf.random.normal(self.z.get_shape())
-        disc_n, _ = self.discriminator(noise, reuse=True, scope = 'disc_ae')
-        self.loss_d = tf.reduce_mean(-tf.log(self.disc_n) - tf.log(1 - self.disc_z))
-        self.loss_g = tf.reduce_mean(-tf.log(self.disc_z))
+        disc_kwargs= {}
+        with tf.variable_scope("discriminator") as scope:
+            _, self.disc_z = self.discriminator(self.z, scope = scope, **disc_kwargs)
+            noise = tf.random_normal([c.batch_size,self.z.get_shape().as_list()[1]])
+            _, self.disc_n = self.discriminator(noise, reuse=True, scope = scope, **disc_kwargs)
+        self.loss_d = tf.reduce_mean(self.disc_n) - tf.reduce_mean(self.disc_z)
+        self.loss_g = tf.reduce_mean(self.disc_z)
 
         if c.loss == 'chamfer':
             cost_p1_p2, _, cost_p2_p1, _ = nn_distance(self.x_reconstr, self.gt)
@@ -83,7 +86,7 @@ class PointNetAutoEncoder(AutoEncoder):
             match = approx_match(self.x_reconstr, self.gt)
             self.loss = tf.reduce_mean(match_cost(self.x_reconstr, self.gt, match))
         if c.adv_ae:
-            self.loss += self.loss_g
+            self.loss += (self.loss_g/10)
         reg_losses = self.graph.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
         if c.exists_and_is_not_none('w_reg_alpha'):
             w_reg_alpha = c.w_reg_alpha
@@ -92,6 +95,15 @@ class PointNetAutoEncoder(AutoEncoder):
 
         for rl in reg_losses:
             self.loss += (w_reg_alpha * rl)
+
+    def discriminator(self, data, reuse=None, scope='disc'):
+        with tf.variable_scope(scope, reuse=reuse):
+            layer = tf.contrib.layers.fully_connected(data, 256)
+            # layer = tf.contrib.layers.fully_connected(layer, 512)
+            layer = tf.contrib.layers.fully_connected(layer, 128)
+            layer = tf.contrib.layers.fully_connected(layer, 1, activation_fn=None)
+            prob = tf.nn.sigmoid(layer)
+        return prob, layer
 
     def _setup_optimizer(self):
         c = self.configuration
@@ -102,11 +114,18 @@ class PointNetAutoEncoder(AutoEncoder):
             tf.summary.scalar('learning_rate', self.lr)
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
-        self.train_step = self.optimizer.minimize(self.loss)
+        train_vars = tf.trainable_variables()
+        d_params = [v for v in train_vars if '/discriminator/' in v.name ]
+        g_params = [v for v in train_vars if '/discriminator/' not in v.name]
+
+        self.train_step = self.optimizer.minimize(self.loss, var_list=g_params)
+
+        self.d_step = self.optimizer.minimize(self.loss_d/10, var_list=d_params)
 
     def _single_epoch_train(self, train_data, configuration, only_fw=False,mask_type=0):
         n_examples = train_data.num_examples
         epoch_loss = 0.
+        epoch_loss_d=0
         batch_size = configuration.batch_size
         n_batches = int(n_examples / batch_size)
         start_time = time.time()
@@ -137,17 +156,19 @@ class PointNetAutoEncoder(AutoEncoder):
             if self.is_denoising:
                 _, loss = fit(batch_i, original_data)
             else:
-                _, loss = fit(batch_i)
+                _, loss,loss_d = fit(batch_i)
 
             # Compute average loss
             epoch_loss += loss
+            epoch_loss_d+=loss_d
         epoch_loss /= n_batches
+        epoch_loss_d /=n_batches
         duration = time.time() - start_time
         
         if configuration.loss == 'emd':
             epoch_loss /= len(train_data.point_clouds[0])
         
-        return epoch_loss, duration
+        return epoch_loss, duration,epoch_loss_d
     #
     # def _single_epoch_train_global(self, train_data, configuration, only_fw=False):
     #     n_examples = train_data.num_examples
