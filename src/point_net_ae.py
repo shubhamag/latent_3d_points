@@ -70,6 +70,11 @@ class PointNetAutoEncoder(AutoEncoder):
 
     def _create_loss(self):
         c = self.configuration
+        disc_z, _ = self.discriminator(self.z, scope = 'disc_ae')
+        noise = tf.random.normal(self.z.get_shape())
+        disc_n, _ = self.discriminator(noise, reuse=True, scope = 'disc_ae')
+        self.loss_d = tf.reduce_mean(-tf.log(self.disc_n) - tf.log(1 - self.disc_z))
+        self.loss_g = tf.reduce_mean(-tf.log(self.disc_z))
 
         if c.loss == 'chamfer':
             cost_p1_p2, _, cost_p2_p1, _ = nn_distance(self.x_reconstr, self.gt)
@@ -77,7 +82,8 @@ class PointNetAutoEncoder(AutoEncoder):
         elif c.loss == 'emd':
             match = approx_match(self.x_reconstr, self.gt)
             self.loss = tf.reduce_mean(match_cost(self.x_reconstr, self.gt, match))
-
+        if c.adv_ae:
+            self.loss += self.loss_g
         reg_losses = self.graph.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
         if c.exists_and_is_not_none('w_reg_alpha'):
             w_reg_alpha = c.w_reg_alpha
