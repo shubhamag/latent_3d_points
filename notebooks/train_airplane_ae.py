@@ -15,7 +15,7 @@ ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
 
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
-experiment_name = 'single_class_ae/airplane_full_adv'
+experiment_name = 'single_class_ae/airplane_full_adv_g'
 
 
 print ("training airplane with no mask")
@@ -35,7 +35,7 @@ conf = Conf(n_input = [n_pc_points, 3],
             loss = ae_loss,
             # training_epochs = train_params['training_epochs'],
             training_epochs = 600,
-            batch_size = train_params['batch_size'],
+            batch_size = train_params['batch_size'] ,
             denoising = train_params['denoising'],
             learning_rate = train_params['learning_rate'],
             train_dir = train_dir,
@@ -67,5 +67,7 @@ buf_size = 1 # Make 'training_stats' file to flush each output line regarding tr
 fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
 train_stats = ae.train(all_pc_data, conf, log_file=fout,mask_type =0)
 fout.close()
+
+
 
 

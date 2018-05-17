@@ -74,12 +74,13 @@ class PointNetAutoEncoder(AutoEncoder):
         disc_kwargs= {}
         with tf.variable_scope("discriminator") as scope:
             _, self.disc_z = self.discriminator(self.z, scope = scope, **disc_kwargs)
-            noise = tf.random_normal([c.batch_size,self.z.get_shape().as_list()[1]])
-            _, self.disc_n = self.discriminator(noise, reuse=True, scope = scope, **disc_kwargs)
+            self.noise = tf.random_normal([c.batch_size,self.z.get_shape().as_list()[1]]) / 10
+
+            _, self.disc_n = self.discriminator(self.noise, reuse=True, scope = scope, **disc_kwargs)
         self.loss_d = tf.reduce_mean(self.disc_n) - tf.reduce_mean(self.disc_z)
         self.loss_g = tf.reduce_mean(self.disc_z)
         epsilon = tf.random_uniform([], 0.0, 1.0)
-        x_hat = noise*epsilon + (1-epsilon)*self.z
+        x_hat = self.noise*epsilon + (1-epsilon)*self.z
         with tf.variable_scope('discriminator') as scope:
             self.d_hat_prob, self.d_hat = self.discriminator(x_hat, reuse=True, scope=scope)
         gradients = tf.gradients(self.d_hat, x_hat)[0]
@@ -94,7 +95,7 @@ class PointNetAutoEncoder(AutoEncoder):
             match = approx_match(self.x_reconstr, self.gt)
             self.loss = tf.reduce_mean(match_cost(self.x_reconstr, self.gt, match))
         if c.adv_ae:
-            self.loss += (self.loss_g/10)
+            self.loss += (self.loss_g/100)
         reg_losses = self.graph.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
         if c.exists_and_is_not_none('w_reg_alpha'):
             w_reg_alpha = c.w_reg_alpha

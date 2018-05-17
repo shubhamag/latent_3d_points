@@ -280,7 +280,7 @@ class AutoEncoder(Neural_Net):
 
     def transform(self, X):
         '''Transform data by mapping it into the latent space.'''
-        return self.sess.run([self.z,self.mask], feed_dict={self.x: X})
+        return self.sess.run([self.z,self.mask,self.noise], feed_dict={self.x: X})
 
     def transform_with_mask(self,X,num_pts_removed = 100,mask_type=0):
         print ("Transform with mask called, with mask type " +str(mask_type) + " "   + str(num_pts_removed) + " points removed")
@@ -297,6 +297,7 @@ class AutoEncoder(Neural_Net):
             mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), sampled]]=0
             mask_inp = np.expand_dims(mask_inp, axis=2)
             X_masked = X[[np.expand_dims(np.arange(X.shape[0]),axis=1),sampled]]
+
             return self.sess.run(self.z, feed_dict={self.x: X, self.mask: mask_inp}), X_masked
         else:
 
@@ -310,6 +311,7 @@ class AutoEncoder(Neural_Net):
             mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,:num_pts_removed]]]=0
             mask_inp = np.expand_dims(mask_inp, axis=2)
             X_masked = X[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,num_pts_removed:]]]
+
             return self.sess.run(self.z, feed_dict={self.x: X,self.mask: mask_inp}),X_masked
 
     def interpolate(self, x, y, steps):
