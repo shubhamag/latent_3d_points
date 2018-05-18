@@ -89,8 +89,8 @@ def trainGAN(ae=None):
         from latent_3d_points.src.evaluation_metrics import minimum_matching_distance,coverage
     from sklearn.neighbors import NearestNeighbors
 
-    latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full.txt')
-    save_path = '../data/gan_model/latent_wganlgo2_airplane_full'
+    latent_vec = np.loadtxt('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_adv.txt')
+    save_path = '/home/swami/deeprl/latent_3d_points/data/single_class_ae/gan_airplane_full_adv/latent_wglo'
 
     bneck_size = latent_vec.shape[1]
     noise_dim_size = 32

@@ -58,8 +58,10 @@ class LatentGAN(GAN):
             self.opt_d = self.optimizer(learning_rate, beta, self.loss_d, d_params)
 
             self.opt_g = self.optimizer(learning_rate, beta, self.loss_g, g_params)
-            z_factor = 1.0
+            z_factor = 100.0
             self.opt_gz = self.optimizer(learning_rate, beta, self.loss_g+(self.loss_zdata/z_factor), g_params)
+            self.opt_gz = self.optimizer(learning_rate, beta, self.loss_g+(self.loss_zdata/z_factor), g_params)
+            
             self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=10)
             self.init = tf.global_variables_initializer()
 
@@ -71,11 +73,11 @@ class LatentGAN(GAN):
 
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         z =np.random.normal(mu, sigma, (n_samples, ndims))
-        z = z *np.random.normal(0,0.1)
-        norm = np.sqrt(np.sum(z ** 2, axis=1))
-        norm = np.maximum(norm, np.ones_like(norm))
+        #z = z *np.random.normal(0,0.1)
+        # norm = np.sqrt(np.sum(z ** 2, axis=1))
+        # norm = np.maximum(norm, np.ones_like(norm))
 
-        z = z / norm[:, np.newaxis]
+        # z = z / norm[:, np.newaxis]
         return z
 
     def _single_epoch_train(self, train_data, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1},opt_gz=False, save_path = '../data/gan_model/latent_wgan64'):
@@ -101,7 +103,8 @@ class LatentGAN(GAN):
                 z = self.generator_noise_distribution(batch_size, self.noise_dim, **noise_params)
 
                 feed_dict = {self.gt_data: feed, self.noise: z, self.z_data:z_data}
-                loss_d, _ = self.sess.run([self.loss_d, self.opt_d], feed_dict=feed_dict)
+                for i in range(4):
+                    loss_d, _ = self.sess.run([self.loss_d, self.opt_d], feed_dict=feed_dict)
 
                 if(opt_gz==False):
                     loss_g, _, z_grad,loss_z = self.sess.run([self.loss_g, self.opt_g, self.z_grad,self.loss_zdata], feed_dict=feed_dict)
@@ -109,13 +112,13 @@ class LatentGAN(GAN):
                     loss_g, _, z_grad, loss_z = self.sess.run([self.loss_g, self.opt_gz, self.z_grad, self.loss_zdata],
                                                               feed_dict=feed_dict)
                 
-                z_update = z_data - self.learning_rate * z_grad[0]
-                norm = np.sqrt(np.sum(z_update ** 2, axis=1))
-                norm = np.maximum(norm,np.ones_like(norm))
-                z_update_norm = z_update / norm[:, np.newaxis]
-                z_data[:] = z_update_norm
-                # print(str(np.sqrt(np.sum(z ** 2, axis=1))))
-                # print("z_data norm: "+  str(np.sqrt(np.sum(z_data ** 2, axis=1))))
+                    # z_update = z_data - self.learning_rate * z_grad[0]
+                    # norm = np.sqrt(np.sum(z_update ** 2, axis=1))
+                    # norm = np.maximum(norm,np.ones_like(norm))
+                    # z_update_norm = z_update / norm[:, np.newaxis]
+                    # z_data[:] = z_update_norm
+                    # # print(str(np.sqrt(np.sum(z ** 2, axis=1))))
+                    # print("z_data norm: "+  str(np.sqrt(np.sum(z_data ** 2, axis=1))))
                 # Compute average loss
                 epoch_loss_d += loss_d
                 epoch_loss_g += loss_g
