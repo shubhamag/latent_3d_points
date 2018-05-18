@@ -95,7 +95,7 @@ for j in num_pts_to_mask:
     for i in range(num_iters):
         feed_pc, feed_model_names, _ = all_pc_data.next_batch(batch_size)
         # latent_codes = ae.transform(feed_pc) ##also might want to switch to encoder_with_convs_and_symmetry in ae_template, tho not necessary###
-        latent_codes,x_masked = ae.transform_with_mask(feed_pc,num_pts_removed= j, mask_type=2)
+        latent_codes,x_masked = ae.transform_with_mask(feed_pc,num_pts_removed= j, mask_type=1)
         lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
     l2_vecs.append(lv_array[0])

@@ -148,7 +148,9 @@ class AutoEncoder(Neural_Net):
                 _, loss, recon,loss_g = self.sess.run((self.train_step, self.loss, self.x_reconstr,self.loss_g), feed_dict={self.x: X,})
                 if (self.configuration.adv_ae == True):
                     loss = loss- loss_g
-                    _, loss_d = self.sess.run((self.d_step, self.loss_d), feed_dict={self.x: X})
+                    _, loss_d,g_grads,loss_g_grads = self.sess.run((self.d_step, self.loss_d,self.g_gradients,self.loss_g_gradients), feed_dict={self.x: X})
+                    print("loss_g grads w.r.t g[0]",g_grads)
+                    print("loss grads wrt g[0]",loss_g_grads)
 
             is_training(False, session=self.sess)
         except Exception:

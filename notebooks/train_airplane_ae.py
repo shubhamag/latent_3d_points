@@ -15,7 +15,7 @@ ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
 
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
-experiment_name = 'single_class_ae/airplane_full_adv_g'
+experiment_name = 'single_class_ae/airplane_full_adv_g2'
 
 
 print ("training airplane with no mask")
