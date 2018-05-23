@@ -8,7 +8,7 @@ import warnings
 import os.path as osp
 import tensorflow as tf
 import numpy as np
-
+import pdb
 from tflearn import is_training
 
 from . in_out import create_dir, pickle_data, unpickle_data
@@ -148,8 +148,11 @@ class AutoEncoder(Neural_Net):
                 _, loss, recon,loss_g = self.sess.run((self.train_step, self.loss, self.x_reconstr,self.loss_g), feed_dict={self.x: X,})
                 if (self.configuration.adv_ae == True):
                     loss = loss- loss_g
-                    _, loss_d = self.sess.run((self.d_step, self.loss_d), feed_dict={self.x: X})
-
+                    if not self.flag:
+                        _, loss_d = self.sess.run((self.d_step, self.loss_d), feed_dict={self.x: X})
+                    else:
+                        loss_d = self.sess.run((self.loss_d), feed_dict={self.x: X})
+                    #print(loss)
             is_training(False, session=self.sess)
         except Exception:
             raise
@@ -345,6 +348,7 @@ class AutoEncoder(Neural_Net):
             stats.append((epoch, loss, duration,loss_d))
 
             if epoch % c.loss_display_step == 0:
+                #pdb.set_trace()
                 print("Epoch:", '%04d' % (epoch), 'training time (minutes)=', "{:.4f}".format(duration / 60.0), "loss=", "{:.9f}".format(loss))
                 print("loss_d   %4f"%(loss_d))
                 if log_file is not None:

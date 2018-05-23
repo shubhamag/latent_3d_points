@@ -16,8 +16,8 @@ from . autoencoder import AutoEncoder
 from . general_utils import apply_augmentations
 
 try:    
-    from .. external.structural_losses.tf_nndistance import nn_distance
-    from .. external.structural_losses.tf_approxmatch import approx_match, match_cost
+    from latent_3d_points.external.structural_losses.tf_nndistance import nn_distance
+    from latent_3d_points.external.structural_losses.tf_approxmatch import approx_match, match_cost
 except:
     print('External Losses (Chamfer-EMD) cannot be loaded. Please install them first.')
     
@@ -72,21 +72,31 @@ class PointNetAutoEncoder(AutoEncoder):
 
         c = self.configuration
         disc_kwargs= {}
-        with tf.variable_scope("discriminator") as scope:
-            _, self.disc_z = self.discriminator(self.z, scope = scope, **disc_kwargs)
-            self.noise = tf.random_normal([c.batch_size,self.z.get_shape().as_list()[1]]) / 10
+        self.noise = tf.random_normal([c.batch_size,self.z.get_shape().as_list()[1]]) / 10
+        self.flag=1
+        if self.flag:
+            theta = tf.random_normal([50, self.z.get_shape().as_list()[1]])
+            projae = tf.matmul(self.z, tf.transpose(theta))
+            projn = tf.matmul(self.noise, tf.transpose(theta))
+            self.loss_d = tf.reduce_mean((tf.nn.top_k(tf.transpose(projae),k=c.batch_size).values- \
+                tf.nn.top_k(tf.transpose(projn),k=c.batch_size).values)**2)
+            self.loss_g = self.loss_d
+        else:
+            with tf.variable_scope("discriminator") as scope:
+                _, self.disc_z = self.discriminator(self.z, scope = scope, **disc_kwargs)
+                self.noise = tf.random_normal([c.batch_size,self.z.get_shape().as_list()[1]]) / 10
 
-            _, self.disc_n = self.discriminator(self.noise, reuse=True, scope = scope, **disc_kwargs)
-        self.loss_d = tf.reduce_mean(self.disc_n) - tf.reduce_mean(self.disc_z)
-        self.loss_g = tf.reduce_mean(self.disc_z)
-        epsilon = tf.random_uniform([], 0.0, 1.0)
-        x_hat = self.noise*epsilon + (1-epsilon)*self.z
-        with tf.variable_scope('discriminator') as scope:
-            self.d_hat_prob, self.d_hat = self.discriminator(x_hat, reuse=True, scope=scope)
-        gradients = tf.gradients(self.d_hat, x_hat)[0]
-        slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
-        gradient_penalty = 10*tf.reduce_mean((slopes-1.0)**2)
-        self.loss_d += gradient_penalty
+                _, self.disc_n = self.discriminator(self.noise, reuse=True, scope = scope, **disc_kwargs)
+            self.loss_d = tf.reduce_mean(self.disc_n) - tf.reduce_mean(self.disc_z)
+            self.loss_g = tf.reduce_mean(self.disc_z)
+            epsilon = tf.random_uniform([], 0.0, 1.0)
+            x_hat = self.noise*epsilon + (1-epsilon)*self.z
+            with tf.variable_scope('discriminator') as scope:
+                self.d_hat_prob, self.d_hat = self.discriminator(x_hat, reuse=True, scope=scope)
+            gradients = tf.gradients(self.d_hat, x_hat)[0]
+            slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
+            gradient_penalty = 10*tf.reduce_mean((slopes-1.0)**2)
+            self.loss_d += gradient_penalty
 
         if c.loss == 'chamfer':
             cost_p1_p2, _, cost_p2_p1, _ = nn_distance(self.x_reconstr, self.gt)
@@ -128,8 +138,8 @@ class PointNetAutoEncoder(AutoEncoder):
         g_params = [v for v in train_vars if '/discriminator/' not in v.name]
 
         self.train_step = self.optimizer.minimize(self.loss, var_list=g_params)
-
-        self.d_step = self.optimizer.minimize(self.loss_d/10, var_list=d_params)
+        if not self.flag:
+            self.d_step = self.optimizer.minimize(self.loss_d/10, var_list=d_params)
 
     def _single_epoch_train(self, train_data, configuration, only_fw=False,mask_type=0):
         n_examples = train_data.num_examples
@@ -176,7 +186,7 @@ class PointNetAutoEncoder(AutoEncoder):
         
         if configuration.loss == 'emd':
             epoch_loss /= len(train_data.point_clouds[0])
-        
+        #print(epoch_loss, duration,epoch_loss_d)
         return epoch_loss, duration,epoch_loss_d
     #
     # def _single_epoch_train_global(self, train_data, configuration, only_fw=False):
