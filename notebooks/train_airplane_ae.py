@@ -62,11 +62,16 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 class_dir = '/home/shubham/latent_3d_points/data/airplane_full'
 all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
 
+do_train =True
+do_test  = True
 
-buf_size = 1 # Make 'training_stats' file to flush each output line regarding training.
-fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
-train_stats = ae.train(all_pc_data, conf, log_file=fout,mask_type =0)
-fout.close()
+if(do_train):
+    buf_size = 1 # Make 'training_stats' file to flush each output line regarding training.
+    fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
+    train_stats = ae.train(all_pc_data, conf, log_file=fout,mask_type =0)
+    fout.close()
+if(do_test):
+    pass
 
 
 

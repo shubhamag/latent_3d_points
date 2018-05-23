@@ -48,6 +48,15 @@ class LatentGAN(GAN):
             gradient_penalty = 10*tf.reduce_mean((slopes-1.0)**2)
             self.loss_d += gradient_penalty
             #Post ICLR TRY: safe_log
+            ##adding ae to latentgan code to test reconsgtructions
+            # if(ae is not None):
+            #     c = ae.configuration
+            #     layer = c.decoder(self.generator_out, **c.decoder_args)
+            #     if c.exists_and_is_not_none('close_with_tanh'):
+            #         layer = tf.nn.tanh(layer)
+            #
+            #     self.gen_reconstr = tf.reshape(layer, [-1, ae.n_output[0], ae.n_output[1]])
+            # ##
 
             self.loss_zdata = tf.reduce_mean(tf.reduce_sum(tf.square(self.generator_out_zdata-self.gt_data),axis=1))
             train_vars = tf.trainable_variables()

@@ -97,7 +97,7 @@ for i in range(num_iters):
     lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
 
-np.savetxt(latent_vec_file,lv_array)
+# np.savetxt(latent_vec_file,lv_array)
 print ("Latent codes:")
 print (str(latent_codes))
 print(mask)
@@ -105,13 +105,13 @@ pdb.set_trace()
 
 # pdb.set_trace()
 
-# reconstructions = ae.reconstruct(feed_pc)
-# # shape2 = reconstructions[0][2,:,:]
-# # print "loss : " + str(reconstructions[1])
-# write_ply("car1.ply",reconstructions[0][1,:,:])
-# write_ply("car2.ply",reconstructions[0][2,:,:])
-# write_ply("car3.ply",reconstructions[0][3,:,:])
-# # write_ply("airplane4.ply",reconstructions[0][4,:,:])
+reconstructions = ae.reconstruct(feed_pc)
+# shape2 = reconstructions[0][2,:,:]
+# print "loss : " + str(reconstructions[1])
+write_ply("airplane_ae.ply",reconstructions[0][1,:,:])
+write_ply("airplane_ae2.ply",reconstructions[0][2,:,:])
+write_ply("airplane_ae3.ply",reconstructions[0][3,:,:])
+# write_ply("airplane4.ply",reconstructions[0][4,:,:])
 # pdb.set_trace()
 # print "reconstructed, shape:" + str(reconstructions.shape)
 

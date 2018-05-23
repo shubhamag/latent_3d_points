@@ -19,7 +19,7 @@ import pdb
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae/airplane_full_adv_g'
+experiment_name = 'single_class_ae/airplane_full'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
@@ -118,12 +118,12 @@ else:
     # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/cleaned_vector_test_0.01.txt')
     # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/notebooks/test_lvs.txt') ##directly use input vecs
     # lv_array  = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/clean/lv_with_mask_5.txt') ##noisy vecs
-    lv_array  = np.loadtxt('cleaned_puregan2_0.5.txt') ##noisy vecs
+    lv_array  = np.loadtxt('cleaned_aefull_wgan_0.01.txt') ##noisy vecs
     lv_batch = lv_array
 
     reconstructions = ae.decode(lv_batch)
     for i in range(5):
-        write_ply(pref + "airplane_full_newgansglo_cleaned_" + str(i) + "_.ply", reconstructions[i, :, :])
+        write_ply(pref + "airplane_full_wgan0.01_" + str(i) + "_.ply", reconstructions[i, :, :])
 
 
 

@@ -86,7 +86,7 @@ num_iters = int(math.ceil(num_input/float(batch_size)))  #mostly =1
 array_row_size = int(num_iters*batch_size)
 print "lv num rows:" + str(array_row_size)
 
-num_pts_to_mask = [10,100,500,800,1000,1200,1500,1900]
+num_pts_to_mask = [600]
 
 l2_vecs = []
 
@@ -95,32 +95,32 @@ for j in num_pts_to_mask:
     for i in range(num_iters):
         feed_pc, feed_model_names, _ = all_pc_data.next_batch(batch_size)
         # latent_codes = ae.transform(feed_pc) ##also might want to switch to encoder_with_convs_and_symmetry in ae_template, tho not necessary###
-        latent_codes,x_masked = ae.transform_with_mask(feed_pc,num_pts_removed= j, mask_type=1)
+        latent_codes,x_masked = ae.transform_with_mask(feed_pc,num_pts_removed= j, mask_type=2)
         lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
     l2_vecs.append(lv_array[0])
     reconstructions = ae.decode(lv_array)
     pref = './recon_from_ac/'
     for k in range(5):
-        write_ply(pref + "airplane_aetest_" + str(j) + "_masked_" + str(k) + "_.ply", reconstructions[k, :, :])
+        write_ply(pref + "airplane_wgan_" + str(j) + "_masked_" + str(k) + "_.ply", reconstructions[k, :, :])
 
 
 
-# np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
-for i in range(len(l2_vecs)):
-    dist = np.linalg.norm(l2_vecs[i] - l2_vecs[0])
-    print("l2 dist betwen " + str(i) + " and 0 :" + str(dist))
-    dist = np.linalg.norm(l2_vecs[i] - l2_vecs[0],ord=1)
-    print("l1: "+ str(dist))
+np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
+# for i in range(len(l2_vecs)):
+#     dist = np.linalg.norm(l2_vecs[i] - l2_vecs[0])
+#     print("l2 dist betwen " + str(i) + " and 0 :" + str(dist))
+#     dist = np.linalg.norm(l2_vecs[i] - l2_vecs[0],ord=1)
+#     print("l1: "+ str(dist))
 
 
 
 
 
-clean_with_gan_and_reconstruct = False
+clean_with_gan_and_reconstruct = True
 if(clean_with_gan_and_reconstruct):
     from latent_3d_points.notebooks.train_latent_gan_clean import GAN_cleaner
-    GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked,ae=ae)
+    GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked,ae=ae,num_epochs=20000)
 
 
 
