@@ -45,54 +45,62 @@ class LatentGAN(GAN):
                 self.synthetic_prob, self.synthetic_logit = self.discriminator(self.generator_out, scope=scope)
 
             # self.loss_g = tf.reduce_mean(-tf.log(self.synthetic_prob))
-            self.loss_g = tf.reduce_mean(self.synthetic_logit)
+        self.loss_g = tf.reduce_mean(self.synthetic_logit)
 
-            # zeros= t
-            # self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data)*tf.cast(tf.greater(tf.abs(self.gt_data),0),tf.float32))
-            self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
+        # zeros= t
+        # self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data)*tf.cast(tf.greater(tf.abs(self.gt_data),0),tf.float32))
+        self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
 
-            # X_idx = tf.expand_dims(masked_cloud, axis=3)
-            # X_diff = tf.reduce_sum(tf.square(X_idx - tf.expand_dims(tf.transpose(generator_out,[0,2,1]),axis=1)), axis=2)
-            # X_diff_arg = tf.reduce_min(X_diff,axis=2)
-            c = ae.configuration
-            layer = c.decoder(self.generator_out, **c.decoder_args)
-            if c.exists_and_is_not_none('close_with_tanh'):
-                layer = tf.nn.tanh(layer)
+        # X_idx = tf.expand_dims(masked_cloud, axis=3)
+        # X_diff = tf.reduce_sum(tf.square(X_idx - tf.expand_dims(tf.transpose(generator_out,[0,2,1]),axis=1)), axis=2)
+        # X_diff_arg = tf.reduce_min(X_diff,axis=2)
+        c = ae.configuration
+        import pdb
+        pdb.set_trace()
+        with tf.variable_scope(c.experiment_name,reuse=True):
+            self.layer = c.decoder(self.generator_out, **c.decoder_args)
+        if c.exists_and_is_not_none('close_with_tanh'):
+            self.layer = tf.nn.tanh(self.layer)
 
-            self.gen_reconstr = tf.reshape(layer, [-1, ae.n_output[0], ae.n_output[1]])
-            
-            dist, idx, _, _ = nn_distance(self.masked_cloud, self.gen_reconstr)
-            self.loss_chd = tf.reduce_mean(dist)
-            #Post ICLR TRY: safe_log
+        self.gen_reconstr = tf.reshape(self.layer, [-1, ae.n_output[0], ae.n_output[1]])
 
-            train_vars = tf.trainable_variables()
+        dist, idx, _, _ = nn_distance(self.masked_cloud, self.gen_reconstr)
+        self.loss_chd = tf.reduce_mean(dist)
+        #Post ICLR TRY: safe_log
 
-            d_params = [v for v in train_vars if v.name.startswith(name + '/discriminator/')]
-            g_params = [v for v in train_vars if v.name.startswith(name + '/generator/')]
-            self.noise_params = [v for v in train_vars if 'noise' in v.name]
+        train_vars = tf.trainable_variables()
 
-            # self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_chd, self.noise_params)
-            self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_l2, self.noise_params)
-            self.opt_l2 = self.optimizer(learning_rate, beta, 0*self.loss_g+self.lc_wt *self.loss_l2, self.noise_params) #ignoring loss g2
-            self.saver = tf.train.Saver(d_params+g_params, max_to_keep=1)
-            self.init = tf.global_variables_initializer()
 
-            # Launch the session
-            config = tf.ConfigProto()
-            config.gpu_options.allow_growth = True
-            self.sess = tf.Session(config=config)
-            self.sess.run(self.init)
-            
+        d_params = [v for v in train_vars if v.name.startswith(name + '/discriminator/')]
+        g_params = [v for v in train_vars if v.name.startswith(name + '/generator/')]
+        self.noise_params = [v for v in train_vars if 'noise' in v.name]
+
+        # self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_chd, self.noise_params)
+        self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_l2, self.noise_params)
+        self.opt_l2 = self.optimizer(learning_rate, beta, 0*self.loss_g+self.lc_wt *self.loss_l2, self.noise_params) #ignoring loss g2
+        self.saver = tf.train.Saver(d_params+g_params, max_to_keep=1)
+
+        gan_train_params = d_params + g_params + self.noise_params
+        # self.init = tf.global_variables_initializer()
+        self.init = tf.variables_initializer(gan_train_params)
+
+        # Launch the session
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        self.sess = tf.Session(config=config)
+        self.sess.run(self.init)
+
 
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch,masked_cloud, epoch, save_path = '../data/gan_model/latent_wgan64',restore_epoch='99',lc_weight = 0.01):
+    def _single_epoch_train(self, batch,masked_cloud, epoch, save_path = '../data/gan_model/',restore_epoch='99',lc_weight = 0.01):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
         '''
         self.saver.restore(self.sess,save_path+'-' + restore_epoch)
+        return
         # n_examples = batch.num_examples
         epoch_loss_l2 = 0.
         epoch_loss_g = 0.
@@ -113,7 +121,7 @@ class LatentGAN(GAN):
 
 
         for l in lc_wt_mat:
-            # tf.assign(self.noise_params[0],noise_params)
+            # self.sess.run(tf.assign(self.noise_params[0],noise_params))
             self.sess.run(tf.variables_initializer(self.noise_params))
 
             try:
@@ -140,7 +148,7 @@ class LatentGAN(GAN):
             l2_losses.append(loss_l2)
 
 
-            save_path  ='cleaned_puregan2_' + str(l) +  '.txt'
+            save_path  ='cleaned_aefull_wgan_' + str(l) +  '.txt'
             np.savetxt(save_path, cleaned_vector)
             print("cleaned vecs saved to "+save_path)
 

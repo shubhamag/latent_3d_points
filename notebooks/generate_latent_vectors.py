@@ -33,7 +33,7 @@ print dec_args
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae/airplane_full_adv'
+experiment_name = 'single_class_ae/airplane_full'
 train_dir = create_dir(osp.join(top_out_dir, experiment_name))
 
 
@@ -72,7 +72,7 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',410)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/car_train/',660)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full',600)
-ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_adv',580)
+ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_sw',580)
 
 
 airplane = '02691156'
@@ -98,7 +98,7 @@ for i in range(num_iters):
     lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
 
-np.savetxt(latent_vec_file,lv_array)
+# np.savetxt(latent_vec_file,lv_array)
 print ("Latent codes:")
 print (str(latent_codes))
 print(mask)
@@ -106,13 +106,13 @@ print(mask)
 
 # pdb.set_trace()
 
-# reconstructions = ae.reconstruct(feed_pc)
-# # shape2 = reconstructions[0][2,:,:]
-# # print "loss : " + str(reconstructions[1])
-# write_ply("car1.ply",reconstructions[0][1,:,:])
-# write_ply("car2.ply",reconstructions[0][2,:,:])
-# write_ply("car3.ply",reconstructions[0][3,:,:])
-# # write_ply("airplane4.ply",reconstructions[0][4,:,:])
+reconstructions = ae.reconstruct(feed_pc)
+# shape2 = reconstructions[0][2,:,:]
+# print "loss : " + str(reconstructions[1])
+write_ply("airplane_ae.ply",reconstructions[0][1,:,:])
+write_ply("airplane_ae2.ply",reconstructions[0][2,:,:])
+write_ply("airplane_ae3.ply",reconstructions[0][3,:,:])
+# write_ply("airplane4.ply",reconstructions[0][4,:,:])
 # pdb.set_trace()
 # print "reconstructed, shape:" + str(reconstructions.shape)
 

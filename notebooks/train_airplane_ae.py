@@ -15,6 +15,7 @@ ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
 
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
+
 experiment_name = 'single_class_ae/airplane_full_sw'
 
 
@@ -62,11 +63,16 @@ airplane = '02691156'
 class_dir = '/home/swami/deeprl/latent_3d_points/data/shape_net_core_uniform_samples_2048/'+airplane
 all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
 
+do_train =True
+do_test  = True
 
-buf_size = 1 # Make 'training_stats' file to flush each output line regarding training.
-fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
-train_stats = ae.train(all_pc_data, conf, log_file=fout,mask_type =0)
-fout.close()
+if(do_train):
+    buf_size = 1 # Make 'training_stats' file to flush each output line regarding training.
+    fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
+    train_stats = ae.train(all_pc_data, conf, log_file=fout,mask_type =0)
+    fout.close()
+if(do_test):
+    pass
 
 
 

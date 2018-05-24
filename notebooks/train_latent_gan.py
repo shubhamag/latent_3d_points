@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 from latent_3d_points.src.latent_gan import LatentGAN
+
+
 import pdb
 
 
@@ -78,7 +80,107 @@ class latent_dataset:
 #     for i in xrange(num_epoch):
 #         (d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec_class,epoch = i,save_path=save_path)
 #         print("disc %4f gen %4f duration %f"%(d_loss, g_loss, time))
+def eval_GAN(save_path,epoch,ae=None):
+    import os.path as osp
+    from latent_3d_points.src.autoencoder import Configuration as Conf
+    from latent_3d_points.src.point_net_ae import PointNetAutoEncoder
+    from latent_3d_points.src.ae_templates import mlp_architecture_ala_iclr_18, default_train_params
+    from latent_3d_points.src.in_out import snc_category_to_synth_id, create_dir, PointCloudDataSet, \
+        load_all_point_clouds_under_folder
+    from latent_3d_points.src.tf_utils import reset_tf_graph
 
+    from latent_3d_points.src.IO import write_ply
+    import numpy as np
+    import pdb
+
+
+    bneck_size = 128
+    noise_dim_size = 64
+    batch_size = 10
+    # latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size],
+    #                       noise_dim = noise_dim_size, discriminator = discriminator, generator = generator, beta=0.9)
+    # latentgan.saver.restore(latentgan.sess,save_path+'-' + epoch)
+    from latent_3d_points.src.latent_gan_clean import LatentGAN as LCGAN
+    latentgan = LCGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=64,
+                          discriminator=discriminator, generator=generator, beta=0.9, batch_size=batch_size,
+                          masked_cloud_size=None, ae=ae)
+
+    latentgan._single_epoch_train(None, None, epoch=10,
+                                                           save_path='/home/shubham/latent_3d_points/data/gan_model/wgan_ae_full',
+                                                           restore_epoch='794')
+    #
+    batch_size = 10
+    #
+    #
+    input_noise = np.random.normal([batch_size,noise_dim_size])
+    feed_dict = {latentgan.noise: input_noise}
+    #
+    gen_lv = latentgan.sess.run([latentgan.generator_out], feed_dict=feed_dict)
+    pdb.set_trace()
+
+
+
+
+    # if(ae is None):
+    #     n_pc_points = 2048  # Number of points per model.
+    #     bneck_size = 128  # Bottleneck-AE size
+    #     ae_loss = 'emd'  # Loss to optimize: 'emd' or 'chamfer'
+    #
+    #     top_out_dir = '../data/'  # Use to save Neural-Net check-points etc.
+    #     top_in_dir = '../data/shape_net_core_uniform_samples_2048/'  # Top-dir of where point-clouds are stored.
+    #
+    #     experiment_name = 'single_class_ae/airplane_full'
+    #     train_params = default_train_params()
+    #     encoder, decoder, enc_args, dec_args = mlp_architecture_ala_iclr_18(n_pc_points, bneck_size)
+    #     train_dir = create_dir(osp.join(top_out_dir, experiment_name))
+    #     conf = Conf(n_input=[n_pc_points, 3],
+    #                 loss=ae_loss,
+    #                 # training_epochs = train_params['training_epochs'],
+    #                 training_epochs=600,
+    #                 batch_size=train_params['batch_size'],
+    #                 denoising=train_params['denoising'],
+    #                 learning_rate=train_params['learning_rate'],
+    #                 train_dir=train_dir,
+    #                 loss_display_step=train_params['loss_display_step'],
+    #                 saver_step=train_params['saver_step'],
+    #                 saver_max_to_keep=20,
+    #                 z_rotate=train_params['z_rotate'],
+    #                 encoder=encoder,k
+    #                 decoder=decoder,
+    #                 encoder_args=enc_args,
+    #                 decoder_args=dec_args,
+    #                 adv_ae=False
+    #                 )
+    #     conf.experiment_name = experiment_name
+    #     reset_tf_graph()
+    #     ae = PointNetAutoEncoder(conf.experiment_name, conf)
+    #     ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full/', 600)
+    np.savetxt("wgan_vecs.txt", gen_lv)
+
+
+    pdb.set_trace()
+
+
+    # reconstructions = ae.decode(gen_lv)
+
+    # num_epoch =800
+    # opt_gz= False
+    # for i in xrange(num_epoch):
+    #     (d_loss, g_loss,z_loss), time = latentgan._single_epoch_train(latent_vec_class,epoch = i,opt_gz=opt_gz,save_path=save_path)
+    #     print("epoch %4d disc %4f gen %4f z_loss  %4f  duration %f"%(i,d_loss, g_loss, z_loss,time))
+    #     # if(z_loss < 6.2 and cov_lv>0.6):
+    #     #     print("Switching to opt gz")
+    #     #     opt_gz=True
+    #
+    #
+    #     ##VALIDATION##
+    #     gen_lv = latentgan.generate_lv(batch_size=500)
+    #     # gen_lv = latentgan.generate_lv_with_z(batch_size=500,z_data=latent_vec_class.z_data[:500])
+    #     distances, indices = nbrs.kneighbors(gen_lv)
+    #     print("vector distances mean =" + str(np.mean(distances)))
+    #     unique_matches = np.unique(indices)
+    #     cov_lv = unique_matches.shape[0] / float(500)
+    #     print("coverage = " + str(cov_lv))
 
 
 def trainGAN(ae=None):
@@ -89,11 +191,11 @@ def trainGAN(ae=None):
         from latent_3d_points.src.evaluation_metrics import minimum_matching_distance,coverage
     from sklearn.neighbors import NearestNeighbors
 
-    latent_vec = np.loadtxt('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_adv.txt')
-    save_path = '/home/swami/deeprl/latent_3d_points/data/single_class_ae/gan_airplane_full_adv/latent_wglo'
+    latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full.txt')
+    save_path = '/home/shubham/latent_3d_points/data/gan_model/wgan_ae_full'
 
     bneck_size = latent_vec.shape[1]
-    noise_dim_size = 32
+    noise_dim_size = 64
     z_data = np.random.normal(0, 1, (latent_vec.shape[0], noise_dim_size))
     z_data = z_data * np.random.normal(0, 0.1)
     norm = np.sqrt(np.sum(z_data ** 2, axis=1))
@@ -103,14 +205,14 @@ def trainGAN(ae=None):
     latent_vec_class = latent_dataset(latent_vec, z_data)
     latent_vec_class.shuffle_data()
 
-    validation_batch_size= 4000
+    validation_batch_size= 500
     cov_lv =0
     latent_validation,_,_,_ = latent_vec_class.next_batch(batch_size=validation_batch_size)
     nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(latent_validation)
 
 
     latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size], noise_dim = noise_dim_size, discriminator = discriminator, generator = generator, beta=0.9)
-
+    # latentgan.saver.restore(latentgan.sess,save_path+'-' + '790')
     num_epoch =800
     opt_gz= False
     for i in xrange(num_epoch):
@@ -134,5 +236,9 @@ def trainGAN(ae=None):
             reconstructions = ae.decode(gen_lv)
             cov = coverage(reconstructions, validation_pcs)
 
+
+
+
 if __name__ == '__main__':
-    trainGAN()
+    # trainGAN()
+    eval_GAN(save_path='/home/shubham/latent_3d_points/data/gan_model/wgan_ae_full',epoch='794')

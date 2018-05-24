@@ -1,8 +1,9 @@
 import tensorflow as tf
 import numpy as np
 from latent_3d_points.src.latent_gan_clean import LatentGAN
+import pdb
 
-num_epoch = 100
+
 
 def discriminator(data, reuse=None, scope='disc'):
 	with tf.variable_scope(scope, reuse=reuse):
@@ -50,7 +51,7 @@ def generator(noise, n_output):
 # 		return self
 
 
-def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None):
+def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None,num_epochs=20000):
 
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/clean/lv_with_mask_5.txt')
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/test_lvs.txt')
@@ -62,13 +63,25 @@ def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None):
 	batch_size = latent_vec.shape[0]
 	if(masked_cloud is None):
 		print("Error, masked clouds not given")
-		exit()
+		# exit()
 	# latent_vec_class = latent_dataset(latent_vec)
 	latentgan = LatentGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=64,
 						  discriminator=discriminator, generator=generator, beta=0.9, batch_size=batch_size, masked_cloud_size = masked_cloud.shape[1], ae=ae)
 
-	(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = 20000,save_path='../data/gan_model/latent_wganlgo2_airplane_full',restore_epoch='738')
-	print("l2_loss %4f gen %4f duration %f"%(d_loss, g_loss, time))
+	# (d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs,
+	latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs,
+														   save_path='/home/shubham/latent_3d_points/data/gan_model/wgan_ae_full',restore_epoch='794')
+	import pdb
+	pdb.set_trace()
+	feed_dict = None
+	decodes,noise = latentgan.sess.run([latentgan.gen_reconstr,latentgan.noise],feed_dict=feed_dict)
+
+	from latent_3d_points.src.IO import write_ply
+	pref = './recon_from_ac/'
+	pdb.set_trace()
+	for i in range(5):
+		write_ply(pref + "airplane_gan_direct_" + str(i) + "_.ply", decodes[i, :, :])
+	# print("l2_loss %4f gen %4f duration %f"%(d_loss, g_loss, time))
 
 
 if __name__ == '__main__':
