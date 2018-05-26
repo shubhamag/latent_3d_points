@@ -8,8 +8,8 @@ import pdb
 def discriminator(data, reuse=None, scope='disc'):
 	with tf.variable_scope(scope, reuse=reuse):
 		layer = tf.contrib.layers.fully_connected(data, 256)
-		# layer = tf.contrib.layers.fully_connected(layer, 512)
-		layer = tf.contrib.layers.fully_connected(layer, 128)
+		layer = tf.contrib.layers.fully_connected(layer, 512)
+		#layer = tf.contrib.layers.fully_connected(layer, 128)
 		layer = tf.contrib.layers.fully_connected(layer, 1, activation_fn=None)
 		prob = tf.nn.sigmoid(layer)
 	return prob, layer
@@ -65,22 +65,21 @@ def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None,num_epochs=20000):
 		print("Error, masked clouds not given")
 		# exit()
 	# latent_vec_class = latent_dataset(latent_vec)
-	latentgan = LatentGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=64,
+	latentgan = LatentGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=128,
 						  discriminator=discriminator, generator=generator, beta=0.9, batch_size=batch_size, masked_cloud_size = masked_cloud.shape[1], ae=ae)
 
 	# (d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs,
-	latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs,
-														   save_path='/home/shubham/latent_3d_points/data/gan_model/wgan_ae_full',restore_epoch='794')
-	import pdb
-	pdb.set_trace()
+	latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs, save_path='/home/swami/deeprl/latent_3d_points/data/gan_model/vgan_ae_full_ae',restore_epoch='1598')
+	# import pdb
+	# pdb.set_trace()
 	feed_dict = None
 	decodes,noise = latentgan.sess.run([latentgan.gen_reconstr,latentgan.noise],feed_dict=feed_dict)
 
 	from latent_3d_points.src.IO import write_ply
 	pref = './recon_from_ac/'
-	pdb.set_trace()
+	# pdb.set_trace()
 	for i in range(5):
-		write_ply(pref + "airplane_gan_direct_" + str(i) + "_.ply", decodes[i, :, :])
+		write_ply(pref + "airplane_vgan_ae" + str(i) + "_.ply", decodes[i, :, :])
 	# print("l2_loss %4f gen %4f duration %f"%(d_loss, g_loss, time))
 
 

@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from latent_3d_points.src.latent_gan import LatentGAN
+#from latent_3d_points.src.latent_gan import LatentGAN
+from latent_3d_points.src.vanilla_gan import LatentGAN
 
 
 import pdb
@@ -10,8 +11,8 @@ import pdb
 def discriminator(data, reuse=None, scope='disc'):
     with tf.variable_scope(scope, reuse=reuse):
         layer = tf.contrib.layers.fully_connected(data, 256)
-        # layer = tf.contrib.layers.fully_connected(layer, 512)
-        layer = tf.contrib.layers.fully_connected(layer, 128)
+        layer = tf.contrib.layers.fully_connected(layer, 512)
+        # layer = tf.contrib.layers.fully_connected(layer, 128)
         layer = tf.contrib.layers.fully_connected(layer, 1, activation_fn=None)
         prob = tf.nn.sigmoid(layer)
     return prob, layer
@@ -191,11 +192,11 @@ def trainGAN(ae=None):
         from latent_3d_points.src.evaluation_metrics import minimum_matching_distance,coverage
     from sklearn.neighbors import NearestNeighbors
 
-    latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full.txt')
-    save_path = '/home/shubham/latent_3d_points/data/gan_model/wgan_ae_full'
+    latent_vec = np.loadtxt('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_ae.txt')
+    save_path = '/home/swami/deeprl/latent_3d_points/data/gan_model/vgan_ae_full_ae'
 
     bneck_size = latent_vec.shape[1]
-    noise_dim_size = 64
+    noise_dim_size = 128
     z_data = np.random.normal(0, 1, (latent_vec.shape[0], noise_dim_size))
     z_data = z_data * np.random.normal(0, 0.1)
     norm = np.sqrt(np.sum(z_data ** 2, axis=1))
@@ -210,10 +211,9 @@ def trainGAN(ae=None):
     latent_validation,_,_,_ = latent_vec_class.next_batch(batch_size=validation_batch_size)
     nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(latent_validation)
 
-
     latentgan = LatentGAN(name = 'latentgan', learning_rate = 0.0001, n_output = [bneck_size], noise_dim = noise_dim_size, discriminator = discriminator, generator = generator, beta=0.9)
     # latentgan.saver.restore(latentgan.sess,save_path+'-' + '790')
-    num_epoch =800
+    num_epoch =1600
     opt_gz= False
     for i in xrange(num_epoch):
         (d_loss, g_loss,z_loss), time = latentgan._single_epoch_train(latent_vec_class,epoch = i,opt_gz=opt_gz,save_path=save_path)
@@ -240,5 +240,5 @@ def trainGAN(ae=None):
 
 
 if __name__ == '__main__':
-    # trainGAN()
-    eval_GAN(save_path='/home/shubham/latent_3d_points/data/gan_model/wgan_ae_full',epoch='794')
+    trainGAN()
+    #eval_GAN(save_path='/home/shubham/latent_3d_points/data/gan_model/wgan_ae_full',epoch='794')

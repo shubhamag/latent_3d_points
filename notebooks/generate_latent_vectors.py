@@ -33,7 +33,7 @@ print dec_args
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae/airplane_full'
+experiment_name = 'single_class_ae/airplane_full_ae'
 train_dir = create_dir(osp.join(top_out_dir, experiment_name))
 
 
@@ -72,7 +72,7 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',410)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/car_train/',660)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full',600)
-ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_sw',580)
+ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_ae',600)
 
 
 airplane = '02691156'
@@ -80,7 +80,7 @@ class_dir = '/home/swami/deeprl/latent_3d_points/data/shape_net_core_uniform_sam
 all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
 
 # latent_vec_file = '/home/shubham/latent_3d_points/data/' + "car_train_ae_train.txt"
-latent_vec_file = '/home/swami/deeprl/latent_3d_points/data/single_class_ae/' + "airplane_full_adv.txt"
+latent_vec_file = '/home/swami/deeprl/latent_3d_points/data/single_class_ae/' + "airplane_full_ae.txt"
 # feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
 
 full_pc,_,_ = all_pc_data.full_epoch_data()
@@ -98,11 +98,11 @@ for i in range(num_iters):
     lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
 
-# np.savetxt(latent_vec_file,lv_array)
+np.savetxt(latent_vec_file,lv_array)
 print ("Latent codes:")
 print (str(latent_codes))
 print(mask)
-#pdb.set_trace()
+pdb.set_trace()
 
 # pdb.set_trace()
 
