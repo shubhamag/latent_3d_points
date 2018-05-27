@@ -193,7 +193,7 @@ def trainGAN(ae=None):
     from sklearn.neighbors import NearestNeighbors
 
     latent_vec = np.loadtxt('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_ae.txt')
-    save_path = '/home/swami/deeprl/latent_3d_points/data/gan_model/vgan_ae_full_ae'
+    save_path = '/home/swami/deeprl/latent_3d_points/data/gan_model/wgan_ae_full_ae'
 
     bneck_size = latent_vec.shape[1]
     noise_dim_size = 128

@@ -76,7 +76,7 @@ ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airpl
 
 num_pts_to_mask = 5
 #latent_vec_file = '/home/shubham/latent_3d_points/notebooks/gt_noisy_airplane_full.txt'
-latent_vec_file = '/home/swami/deeprl/latent_3d_points/notebooks/gt_noisy_airplane_full.txt'
+latent_vec_file = '/home/swami/deeprl/latent_3d_points/notebooks/gt_noisy_airplane_full_ae.txt'
 
 
 #class_dir = '/home/shubham/latent_3d_points/notebooks/gt'
@@ -99,16 +99,29 @@ for j in num_pts_to_mask:
     for i in range(num_iters):
         feed_pc, feed_model_names, _ = all_pc_data.next_batch(batch_size)
         # latent_codes = ae.transform(feed_pc) ##also might want to switch to encoder_with_convs_and_symmetry in ae_template, tho not necessary###
-        latent_codes,x_masked = ae.transform_with_mask(feed_pc,num_pts_removed= j, mask_type=2)
+        latent_codes,x_masked,x = ae.transform_with_mask(feed_pc,num_pts_removed= j, mask_type=2)
         lv_array[i*batch_size:(i+1)*batch_size,:] = latent_codes
 
     l2_vecs.append(lv_array[0])
     reconstructions = ae.decode(lv_array)
     pref = './recon_from_ac/'
     for k in range(5):
-        write_ply(pref + "airplane_wgan_" + str(j) + "_masked_" + str(k) + "_.ply", reconstructions[k, :, :])
+        write_ply(pref + "airplane_ae_" + str(j) + "_masked_" + str(k) + "_.ply", reconstructions[k, :, :])
+        write_ply(pref + "airplane_ae_" + str(j) + "_gt_" + str(k) + "_.ply", x[k, :, :])
+        write_ply(pref + "airplane_ae_" + str(j) + "_gtmasked_" + str(k) + "_.ply", x_masked[k, :, :])
 
-
+from sklearn.neighbors import NearestNeighbors as NN
+x_masked_recon=np.zeros(x.shape)
+for k in range(5):
+    recons = reconstructions[k,:,:]
+    for pt in x_masked[k,:,:]:
+        nbrs = NN(n_neighbors=1,algorithm='kd_tree').fit(recons)
+        distances,indx = nbrs.kneighbors(np.expand_dims(pt,0))
+        recons = np.delete(recons,indx,0)
+    #pdb.set_trace()
+    x_masked_recon[k,:,:] = np.concatenate([x_masked[k,:,:],recons],axis=0)
+    write_ply(pref + "airplane_ae_" + str(j) + "_mixedmasked_" + str(k) + "_.ply", x_masked_recon[k, :, :])
+x_masked=x_masked_recon
 
 np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
 # for i in range(len(l2_vecs)):
@@ -124,7 +137,7 @@ np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
 clean_with_gan_and_reconstruct = True
 if(clean_with_gan_and_reconstruct):
     from latent_3d_points.notebooks.train_latent_gan_clean import GAN_cleaner
-    GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked,ae=ae,num_epochs=20000)
+    GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked_recon,ae=ae,num_epochs=80000)
 
 
 

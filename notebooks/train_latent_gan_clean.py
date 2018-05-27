@@ -68,8 +68,8 @@ def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None,num_epochs=20000):
 	latentgan = LatentGAN(name='latentgan', learning_rate=0.0001, n_output=[bneck_size], noise_dim=128,
 						  discriminator=discriminator, generator=generator, beta=0.9, batch_size=batch_size, masked_cloud_size = masked_cloud.shape[1], ae=ae)
 
-	# (d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs,
-	latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs, save_path='/home/swami/deeprl/latent_3d_points/data/gan_model/vgan_ae_full_ae',restore_epoch='1598')
+	#(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs,
+	latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs, save_path='/home/swami/deeprl/latent_3d_points/data/gan_model/wgan_ae_full_ae',restore_epoch='1595')
 	# import pdb
 	# pdb.set_trace()
 	feed_dict = None
@@ -79,7 +79,7 @@ def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None,num_epochs=20000):
 	pref = './recon_from_ac/'
 	# pdb.set_trace()
 	for i in range(5):
-		write_ply(pref + "airplane_vgan_ae" + str(i) + "_.ply", decodes[i, :, :])
+		write_ply(pref + "airplane_wgan_ae" + str(i) + "_.ply", decodes[i, :, :])
 	# print("l2_loss %4f gen %4f duration %f"%(d_loss, g_loss, time))
 
 
