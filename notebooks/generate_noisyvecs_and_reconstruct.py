@@ -19,7 +19,7 @@ import pdb
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae/airplane_full_ae'
+experiment_name = 'single_class_ae/airplane_train_ae'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
@@ -68,7 +68,7 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
 #ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full/',600)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/clean/',410)
-ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_ae/',600)
+ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_train_ae/',600)
 
 ##use best encoder and GAN:
 
@@ -76,11 +76,12 @@ ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airpl
 
 num_pts_to_mask = 5
 #latent_vec_file = '/home/shubham/latent_3d_points/notebooks/gt_noisy_airplane_full.txt'
-latent_vec_file = '/home/swami/deeprl/latent_3d_points/notebooks/gt_noisy_airplane_full_ae.txt'
+latent_vec_file = '/home/swami/deeprl/latent_3d_points/notebooks/gt_noisy_airplane_train_ae.txt'
 
 
 #class_dir = '/home/shubham/latent_3d_points/notebooks/gt'
-class_dir = '/home/swami/deeprl/latent_3d_points/notebooks/gt'
+class_dir = '/home/swami/deeprl/latent_3d_points/notebooks/gt_train/'
+# class_dir = '/home/swami/deeprl/latent_3d_points/notebooks/gt_test/'
 
 all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
 
@@ -106,22 +107,11 @@ for j in num_pts_to_mask:
     reconstructions = ae.decode(lv_array)
     pref = './recon_from_ac/'
     for k in range(5):
-        write_ply(pref + "airplane_ae_" + str(j) + "_masked_" + str(k) + "_.ply", reconstructions[k, :, :])
-        write_ply(pref + "airplane_ae_" + str(j) + "_gt_" + str(k) + "_.ply", x[k, :, :])
-        write_ply(pref + "airplane_ae_" + str(j) + "_gtmasked_" + str(k) + "_.ply", x_masked[k, :, :])
+        write_ply(pref + "airplane_train_ae_" + str(j) + "_masked_" + str(k) + "_.ply", reconstructions[k, :, :])
+        write_ply(pref + "airplane_train_" + str(j) + "_gt_" + str(k) + "_.ply", x[k, :, :])
+        write_ply(pref + "airplane_train_" + str(j) + "_gtmasked_" + str(k) + "_.ply", x_masked[k, :, :])
 
-from sklearn.neighbors import NearestNeighbors as NN
-x_masked_recon=np.zeros(x.shape)
-for k in range(5):
-    recons = reconstructions[k,:,:]
-    for pt in x_masked[k,:,:]:
-        nbrs = NN(n_neighbors=1,algorithm='kd_tree').fit(recons)
-        distances,indx = nbrs.kneighbors(np.expand_dims(pt,0))
-        recons = np.delete(recons,indx,0)
-    #pdb.set_trace()
-    x_masked_recon[k,:,:] = np.concatenate([x_masked[k,:,:],recons],axis=0)
-    write_ply(pref + "airplane_ae_" + str(j) + "_mixedmasked_" + str(k) + "_.ply", x_masked_recon[k, :, :])
-x_masked=x_masked_recon
+
 
 np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
 # for i in range(len(l2_vecs)):
@@ -137,7 +127,7 @@ np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
 clean_with_gan_and_reconstruct = True
 if(clean_with_gan_and_reconstruct):
     from latent_3d_points.notebooks.train_latent_gan_clean import GAN_cleaner
-    GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked_recon,ae=ae,num_epochs=80000)
+    GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked,ae=ae,num_epochs=40000)
 
 
 

@@ -35,8 +35,9 @@ class GAN(Neural_Net):
 
     def optimizer(self, learning_rate, beta, loss, var_list):
         initial_learning_rate = learning_rate
-        optimizer = tf.train.AdamOptimizer(initial_learning_rate, beta1=beta).minimize(loss, var_list=var_list)
-        return optimizer
+        optimizer = tf.train.AdamOptimizer(initial_learning_rate, beta1=beta)
+        train_op = optimizer.minimize(loss, var_list=var_list)
+        return optimizer, train_op
 
     def generate(self, n_samples, noise_params):
         noise = self.generator_noise_distribution(n_samples, self.noise_dim, **noise_params)

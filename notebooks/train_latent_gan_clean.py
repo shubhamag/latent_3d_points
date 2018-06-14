@@ -55,8 +55,8 @@ def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None,num_epochs=20000):
 
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/data/single_class_ae/clean/lv_with_mask_5.txt')
 	# latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/test_lvs.txt')
-	if(latent_vec is None):
-		latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/gt_noisy_airplane_full.txt')
+	# if(latent_vec is None):
+	# 	latent_vec = np.loadtxt('/home/shubham/latent_3d_points/notebooks/gt_noisy_airplane_full.txt')
 
 	bneck_size = latent_vec.shape[1]
 	latent_vec = latent_vec[:10]
@@ -69,7 +69,7 @@ def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None,num_epochs=20000):
 						  discriminator=discriminator, generator=generator, beta=0.9, batch_size=batch_size, masked_cloud_size = masked_cloud.shape[1], ae=ae)
 
 	#(d_loss, g_loss), time = latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs,
-	latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs, save_path='/home/swami/deeprl/latent_3d_points/data/gan_model/wgan_ae_full_ae',restore_epoch='1595')
+	latentgan._single_epoch_train(latent_vec,masked_cloud,epoch = num_epochs, save_path='/home/swami/deeprl/latent_3d_points/data/gan_model/wgan_ae_train',restore_epoch='1599')
 	# import pdb
 	# pdb.set_trace()
 	feed_dict = None
@@ -79,7 +79,7 @@ def GAN_cleaner(latent_vec=None,masked_cloud = None, ae=None,num_epochs=20000):
 	pref = './recon_from_ac/'
 	# pdb.set_trace()
 	for i in range(5):
-		write_ply(pref + "airplane_wgan_ae" + str(i) + "_.ply", decodes[i, :, :])
+		write_ply(pref + "airplane_wgan_train" + str(i) + "_.ply", decodes[i, :, :])
 	# print("l2_loss %4f gen %4f duration %f"%(d_loss, g_loss, time))
 
 

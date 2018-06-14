@@ -21,6 +21,7 @@ class LatentGAN(GAN):
         self.discriminator = discriminator
         self.generator = generator
         self.learning_rate = learning_rate
+        self.batch_size = 50
 
         GAN.__init__(self, name, graph)
 
@@ -28,7 +29,9 @@ class LatentGAN(GAN):
 
             self.noise = tf.placeholder(tf.float32, shape=[None, noise_dim])                  # Noise vector.
             self.gt_data = tf.placeholder(tf.float32, shape=[None] + self.n_output)           # Ground-truth.
-            self.z_data = tf.placeholder(tf.float32, shape=[None, noise_dim])
+            # self.z_data = tf.placeholder(tf.float32, shape=[None, noise_dim])
+
+            self.z_data = tf.get_variable("noise", shape=[self.batch_size,noise_dim],initializer=tf.random_normal_initializer)
             with tf.variable_scope('generator'):
                 self.generator_out = self.generator(self.noise, self.n_output)
             with tf.variable_scope('generator', reuse=True):
@@ -37,8 +40,23 @@ class LatentGAN(GAN):
             with tf.variable_scope('discriminator') as scope:
                 self.real_prob, self.real_logit = self.discriminator(self.gt_data, scope=scope)
                 self.synthetic_prob, self.synthetic_logit = self.discriminator(self.generator_out, reuse=True, scope=scope)
-            self.loss_d = tf.reduce_mean(-tf.log(self.real_prob) - tf.log(1 - self.synthetic_prob))
-            self.loss_g = tf.reduce_mean(-tf.log(self.synthetic_prob))
+            ################# WGAN ###########################
+            self.loss_d = tf.reduce_mean(self.real_logit) - tf.reduce_mean(self.synthetic_logit)
+            self.loss_g = tf.reduce_mean(self.synthetic_logit)
+            epsilon = tf.random_uniform([], 0.0, 1.0)
+            x_hat = self.gt_data*epsilon + (1-epsilon)*self.generator_out
+            with tf.variable_scope('discriminator') as scope:
+                self.d_hat_prob, self.d_hat = self.discriminator(x_hat, reuse=True, scope=scope)
+            gradients = tf.gradients(self.d_hat, x_hat)[0]
+            slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
+            gradient_penalty = 10*tf.reduce_mean((slopes-1.0)**2)
+            self.loss_d += gradient_penalty
+            ################# WGAN ends #####################
+
+            ################# VGAN ##########################
+            #self.loss_d = tf.reduce_mean(-tf.log(self.real_prob) - tf.log(1 - self.synthetic_prob))
+            #self.loss_g = tf.reduce_mean(-tf.log(self.synthetic_prob))
+            ################# VGAN ends #####################
             #Post ICLR TRY: safe_log
             ##adding ae to latentgan code to test reconsgtructions
             # if(ae is not None):
@@ -51,17 +69,22 @@ class LatentGAN(GAN):
             # ##
 
             self.loss_zdata = tf.reduce_mean(tf.reduce_sum(tf.square(self.generator_out_zdata-self.gt_data),axis=1))
+
+            ##to co-train Z with norm loss##
+            self.loss_norm = 0.00001 * 0.0001 * tf.reduce_mean(tf.square(tf.reduce_sum(tf.square(self.z_data), axis=1) - noise_dim))
+
+            self.loss_zdata +=self.loss_norm
+
             train_vars = tf.trainable_variables()
             self.z_grad = tf.gradients(self.loss_zdata, [self.z_data])
             d_params = [v for v in train_vars if v.name.startswith(name + '/discriminator/')]
             g_params = [v for v in train_vars if v.name.startswith(name + '/generator/')]
 
-            self.opt_d = self.optimizer(learning_rate, beta, self.loss_d, d_params)
+            _,self.opt_d = self.optimizer(learning_rate, beta, self.loss_d, d_params)
 
-            self.opt_g = self.optimizer(learning_rate, beta, self.loss_g, g_params)
+            _,self.opt_g = self.optimizer(learning_rate, beta, self.loss_g, g_params)
             z_factor = 100.0
-            self.opt_gz = self.optimizer(learning_rate, beta, self.loss_g+(self.loss_zdata/z_factor), g_params)
-            self.opt_gz = self.optimizer(learning_rate, beta, self.loss_g+(self.loss_zdata/z_factor), g_params)
+            _,self.opt_gz = self.optimizer(learning_rate, beta, self.loss_g+(self.loss_zdata/z_factor), g_params + [self.z_data])
             
             self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=10)
             self.init = tf.global_variables_initializer()
@@ -74,14 +97,14 @@ class LatentGAN(GAN):
 
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         z =np.random.normal(mu, sigma, (n_samples, ndims))
-        #z = z *np.random.normal(0,0.1)
+        # z = z *np.random.normal(0,0.1)
         # norm = np.sqrt(np.sum(z ** 2, axis=1))
         # norm = np.maximum(norm, np.ones_like(norm))
-
+        #
         # z = z / norm[:, np.newaxis]
         return z
 
-    def _single_epoch_train(self, train_data, epoch, batch_size=50, noise_params={'mu':0, 'sigma':1},opt_gz=False, save_path = '../data/gan_model/latent_wgan64'):
+    def _single_epoch_train(self, train_data, epoch,noise_params={'mu':0, 'sigma':1},opt_gz=False, save_path = None):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
@@ -90,10 +113,12 @@ class LatentGAN(GAN):
         epoch_loss_d = 0.
         epoch_loss_g = 0.
         epoch_loss_z = 0.
-        batch_size = batch_size
+        epoch_loss_norm = 0.
+
+        batch_size = self.batch_size
         n_batches = int(n_examples / batch_size)
         start_time = time.time()
-
+        loss_norm = 0
         is_training(True, session=self.sess)
         try:
             # Loop over all batches
@@ -103,14 +128,15 @@ class LatentGAN(GAN):
                 # Update discriminator.
                 z = self.generator_noise_distribution(batch_size, self.noise_dim, **noise_params)
 
-                feed_dict = {self.gt_data: feed, self.noise: z, self.z_data:z_data}
+                # feed_dict = {self.gt_data: feed, self.noise: z, self.z_data:z_data}
+                feed_dict = {self.gt_data: feed, self.noise: z}
                 for i in range(4):
                     loss_d, _ = self.sess.run([self.loss_d, self.opt_d], feed_dict=feed_dict)
 
                 if(opt_gz==False):
                     loss_g, _, z_grad,loss_z = self.sess.run([self.loss_g, self.opt_g, self.z_grad,self.loss_zdata], feed_dict=feed_dict)
                 else:
-                    loss_g, _, z_grad, loss_z = self.sess.run([self.loss_g, self.opt_gz, self.z_grad, self.loss_zdata],
+                    loss_g, _, z_grad, loss_z,loss_norm = self.sess.run([self.loss_g, self.opt_gz, self.z_grad, self.loss_zdata,self.loss_norm],
                                                               feed_dict=feed_dict)
                 
                     # z_update = z_data - self.learning_rate * z_grad[0]
@@ -118,12 +144,13 @@ class LatentGAN(GAN):
                     # norm = np.maximum(norm,np.ones_like(norm))
                     # z_update_norm = z_update / norm[:, np.newaxis]
                     # z_data[:] = z_update_norm
-                    # # print(str(np.sqrt(np.sum(z ** 2, axis=1))))
+                    # print(str(np.sqrt(np.sum(z ** 2, axis=1))))
                     # print("z_data norm: "+  str(np.sqrt(np.sum(z_data ** 2, axis=1))))
                 # Compute average loss
                 epoch_loss_d += loss_d
                 epoch_loss_g += loss_g
                 epoch_loss_z +=loss_z
+                epoch_loss_norm +=loss_norm
 
             is_training(False, session=self.sess)
         except Exception:
@@ -134,6 +161,7 @@ class LatentGAN(GAN):
         epoch_loss_d /= n_batches
         epoch_loss_g /= n_batches
         epoch_loss_z /=n_batches
+        print("loss norm:"+ str(epoch_loss_norm))
         duration = time.time() - start_time
         return (epoch_loss_d, epoch_loss_g,epoch_loss_z), duration
 

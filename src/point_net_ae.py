@@ -73,7 +73,7 @@ class PointNetAutoEncoder(AutoEncoder):
         c = self.configuration
         disc_kwargs= {}
         self.noise = tf.random_normal([c.batch_size,self.z.get_shape().as_list()[1]]) / 10
-        self.flag=1
+        self.flag=0
         if self.flag:
             theta = tf.random_normal([50, self.z.get_shape().as_list()[1]])
             projae = tf.matmul(self.z, tf.transpose(theta))

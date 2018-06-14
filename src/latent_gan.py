@@ -69,7 +69,7 @@ class LatentGAN(GAN):
             self.opt_g = self.optimizer(learning_rate, beta, self.loss_g, g_params)
             z_factor = 100.0
             self.opt_gz = self.optimizer(learning_rate, beta, self.loss_g+(self.loss_zdata/z_factor), g_params)
-            self.opt_gz = self.optimizer(learning_rate, beta, self.loss_g+(self.loss_zdata/z_factor), g_params)
+            #self.opt_gz = self.optimizer(learning_rate, beta, self.loss_g+(self.loss_zdata/z_factor), g_params)
             
             self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=10)
             self.init = tf.global_variables_initializer()

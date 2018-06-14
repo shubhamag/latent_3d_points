@@ -318,8 +318,9 @@ class AutoEncoder(Neural_Net):
             mask_inp[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,:num_pts_removed]]]=0
             mask_inp = np.expand_dims(mask_inp, axis=2)
             X_masked = X[[np.expand_dims(np.arange(X.shape[0]), axis=1), X_diff_arg[:,num_pts_removed:]]]
+            #pdb.set_trace()
 
-            return self.sess.run(self.z, feed_dict={self.x: X,self.mask: mask_inp}),X_masked
+            return self.sess.run(self.z, feed_dict={self.x: X,self.mask: mask_inp}),X_masked, X#, X_diff_arg
 
     def interpolate(self, x, y, steps):
         ''' Interpolate between and x and y input vectors in latent space.

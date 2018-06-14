@@ -16,7 +16,7 @@ ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae/airplane_full_ae'
+experiment_name = 'single_class_ae/airplane_train_ae'
 
 
 print ("training airplane with no mask")
@@ -59,8 +59,9 @@ conf.save(osp.join(train_dir, 'configuration'))
 
 reset_tf_graph()
 ae = PointNetAutoEncoder(conf.experiment_name, conf)
-airplane = '02691156'
-class_dir = '/home/swami/deeprl/latent_3d_points/data/shape_net_core_uniform_samples_2048/'+airplane
+#airplane = 'shape_net_core_uniform_samples_2048/02691156'
+airplane = 'airplane_train'
+class_dir = '/home/swami/deeprl/latent_3d_points/data/'+airplane
 all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
 
 do_train =True
