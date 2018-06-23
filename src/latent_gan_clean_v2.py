@@ -50,14 +50,14 @@ class LatentGAN(GAN):
 
         # zeros= t
         # self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data)*tf.cast(tf.greater(tf.abs(self.gt_data),0),tf.float32))
-        # self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
-        self.loss_l2 = tf.reduce_mean(tf.abs(self.generator_out-self.gt_data)) #change to l1
+        self.loss_l2 = tf.reduce_mean(tf.square(self.generator_out-self.gt_data))
 
         # X_idx = tf.expand_dims(masked_cloud, axis=3)
         # X_diff = tf.reduce_sum(tf.square(X_idx - tf.expand_dims(tf.transpose(generator_out,[0,2,1]),axis=1)), axis=2)
         # X_diff_arg = tf.reduce_min(X_diff,axis=2)
         c = ae.configuration
         import pdb
+        #pdb.set_trace()
         with tf.variable_scope(c.experiment_name,reuse=True):
             self.layer = c.decoder(self.generator_out, **c.decoder_args)
         if c.exists_and_is_not_none('close_with_tanh'):
@@ -67,7 +67,6 @@ class LatentGAN(GAN):
 
         #dist1, idx1, dist2, idx2 = nn_distance(self.masked_cloud, self.gen_reconstr)
         match = approx_match(self.masked_cloud, self.gen_reconstr)
-
         #pdb.set_trace()
         self.loss_chd = tf.reduce_mean(match_cost(self.masked_cloud, self.gen_reconstr, match))/2048
         #self.loss_chd = tf.reduce_mean(dist1)+tf.reduce_mean(dist2)
@@ -82,6 +81,7 @@ class LatentGAN(GAN):
         self.noise_params = [v for v in train_vars if 'noise' in v.name]
 
         self.optim_cd, self.opt_cd = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_chd + 10*self.lc_wt*self.loss_l2 + self.loss_norm, self.noise_params)
+        self.optim_cd_pure, self.opt_cd_pure = self.optimizer(learning_rate, beta, self.loss_chd + self.loss_norm, self.noise_params)
         self.optim_g, self.opt_g = self.optimizer(learning_rate, beta, self.lc_wt *self.loss_g+self.loss_l2, self.noise_params)
         self.optim_l2, self.opt_l2 = self.optimizer(learning_rate, beta, 0*self.loss_g+self.lc_wt*self.loss_l2, self.noise_params) #ignoring loss g2
         self.saver = tf.train.Saver(d_params+g_params, max_to_keep=1)
@@ -105,7 +105,7 @@ class LatentGAN(GAN):
     def generator_noise_distribution(self, n_samples, ndims, mu, sigma):
         return np.random.normal(mu, sigma, (n_samples, ndims)
 )
-    def _single_epoch_train(self, batch,masked_cloud, epoch, save_path = '../data/gan_model/',restore_epoch='99',lc_weight = 0.01):
+    def _single_epoch_train(self, batch,masked_cloud, gt, epoch, save_path = '../data/gan_model/',restore_epoch='99',lc_weight = 0.01):
         '''
         see: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
              http://wiseodd.github.io/techblog/2016/09/17/gan-tensorflow/
@@ -116,8 +116,7 @@ class LatentGAN(GAN):
         epoch_loss_g = 0.
         start_time = time.time()
         # final_lc_weightt =0.01
-
-
+        pref = './recon_from_ac/'
         is_training(True, session=self.sess)
         # lc_wt_mat = [0.0001, 0.0005,0.001,0.005,0.01,0.05]
         lc_wt_mat = [0.001]#,0.1,0.5]
@@ -131,23 +130,46 @@ class LatentGAN(GAN):
         #     loss_l2, _,noise_params = self.sess.run([self.loss_l2, self.opt_l2,self.noise_params[0]], feed_dict=feed_dict)
         #     print("l2_loss:" + str(loss_l2))
 
-
         for l in lc_wt_mat:
             # self.sess.run(tf.assign(self.noise_params[0],noise_params))
             self.sess.run(tf.variables_initializer(self.noise_params))
 
             try:
-                # Loop over all batches
-                is_training(True, session=self.sess)
                 lc_wt = np.linspace(l, l/10.0, epoch)
+                # Loop over all batches
+                # is_training(True, session=self.sess)
+                # reconstructions = self.sess.run(self.gen_reconstr, feed_dict=feed_dict)
+                from sklearn.neighbors import NearestNeighbors as NN
+                # x_masked_recon=np.zeros(reconstructions.shape)
+                # pref = './recon_from_ac/'
+                # for k in range(10): #was originally 5 ?
+                #     recons = reconstructions[k,:,:]
+                #     for pt in masked_cloud[k,:,:]:
+                #         nbrs = NN(n_neighbors=1,algorithm='kd_tree').fit(recons)
+                #         distances,indx = nbrs.kneighbors(np.expand_dims(pt,0))
+                #         recons = np.delete(recons,indx,0)
+                #     #pdb.set_trace()
+                #     x_masked_recon[k,:,:] = np.concatenate([masked_cloud[k,:,:],recons],axis=0)
+                mixed_masked = masked_cloud
+                for i in xrange(epoch//4):
+                    #pdb.set_trace()
+                    feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i],self.masked_cloud:mixed_masked}
+                    loss_g, loss_l2, _,loss_chd, loss_norm = self.sess.run([self.loss_g, self.loss_l2, self.opt_cd_pure,self.loss_chd, self.loss_norm], feed_dict=feed_dict)
+                    if i%1000==0:
+                        emd_loss = self.sess.run(self.loss_chd, feed_dict={self.masked_cloud: gt})
+                        print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g) + "loss chamfer:" + str(loss_chd) + " loss norm:" + str(loss_norm) + "emd_loss" + str(emd_loss))
+                        reconstructions = self.sess.run(self.gen_reconstr)
+                        for k in range(10):
+                            write_ply(pref + "airplane_test_" + str(0) + "_masked_opt_" + str(k) + "_.ply", reconstructions[k, :, :])
+
                 for i in xrange(20000):
                     #pdb.set_trace()
                     feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i],self.masked_cloud:masked_cloud}
                     loss_g, loss_l2, _, loss_norm = self.sess.run([self.loss_g, self.loss_l2, self.opt_g, self.loss_norm], feed_dict=feed_dict)
                     if i%1000==0:
-                        print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g)+ " loss norm:" + str(loss_norm))# + " loss chamfer:" + str(loss_chd) )
+                        emd_loss = self.sess.run(self.loss_chd, feed_dict={self.masked_cloud: gt})
+                        print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g)+ " loss norm:" + str(loss_norm) + "emd_loss" + str(emd_loss))# + " loss chamfer:" + str(loss_chd) )
                 reconstructions = self.sess.run(self.gen_reconstr, feed_dict=feed_dict)
-                from sklearn.neighbors import NearestNeighbors as NN
                 x_masked_recon=np.zeros(reconstructions.shape)
                 pref = './recon_from_ac/'
                 for k in range(10): #was originally 5 ?
@@ -158,16 +180,20 @@ class LatentGAN(GAN):
                         recons = np.delete(recons,indx,0)
                     #pdb.set_trace()
                     x_masked_recon[k,:,:] = np.concatenate([masked_cloud[k,:,:],recons],axis=0)
+                # for k in range(5):
+                #     write_ply(pref + "airplane_test_" + str(0) + "_mixedmasked_" + str(k) + "_.ply", x_masked_recon[k, :, :])
+                reconstructions = self.sess.run(self.gen_reconstr)
                 for k in range(5):
-                    write_ply(pref + "airplane_test_" + str(0) + "_mixedmasked_" + str(k) + "_.ply", x_masked_recon[k, :, :])
-
-                mixed_masked=x_masked_recon
-                for i in xrange(epoch):
+                    write_ply(pref + "airplane_test_" + str(0) + "_masked_opt_" + str(k) + "_.ply", reconstructions[k, :, :])
+                #mixed_masked=x_masked_recon
+                for i in xrange(epoch//2):
                     #pdb.set_trace()
+                    mixed_masked=masked_cloud.copy()
                     feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i],self.masked_cloud:mixed_masked}
                     loss_g, loss_l2, _,loss_chd, loss_norm = self.sess.run([self.loss_g, self.loss_l2, self.opt_cd,self.loss_chd, self.loss_norm], feed_dict=feed_dict)
                     if i%1000==0:
-                        print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g) + "loss chamfer:" + str(loss_chd) + " loss norm:" + str(loss_norm))
+                        emd_loss = self.sess.run(self.loss_chd, feed_dict={self.masked_cloud: gt})
+                        print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g) + "loss chamfer:" + str(loss_chd) + " loss norm:" + str(loss_norm) + "emd_loss" + str(emd_loss))
 
                     if(i%10000 ==0 and i>0):
                         ##every 10k epochs, update target##
@@ -181,7 +207,14 @@ class LatentGAN(GAN):
                                 distances, indx = nbrs.kneighbors(np.expand_dims(pt, 0))
                                 recons = np.delete(recons, indx, 0)
 
-                            mixed_masked[k,:,:] = np.concatenate([masked_cloud[k, :, :], recons], axis=0)
+                            #mixed_masked[k,:,:] = np.concatenate([masked_cloud[k, :, :], recons], axis=0)
+                for i in xrange(epoch//4):
+                    #pdb.set_trace()
+                    mixed_masked=masked_cloud.copy()
+                    feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i],self.masked_cloud:mixed_masked}
+                    loss_g, loss_l2, _,loss_chd, loss_norm = self.sess.run([self.loss_g, self.loss_l2, self.opt_cd_pure,self.loss_chd, self.loss_norm], feed_dict=feed_dict)
+                    if i%1000==0:
+                        print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g) + "loss chamfer:" + str(loss_chd) + " loss norm:" + str(loss_norm))
 
 
                     # Compute average loss
@@ -191,8 +224,27 @@ class LatentGAN(GAN):
                 cleaned_vector = self.sess.run(self.generator_out)
                 is_training(False, session=self.sess)
 
-            except Exception:
-                raise
+            except KeyboardInterrupt:
+                for i in xrange(epoch//4):
+                    #pdb.set_trace()
+                    mixed_masked=masked_cloud.copy()
+                    feed_dict = {self.gt_data: batch, self.lc_wt:lc_wt[i],self.masked_cloud:mixed_masked}
+                    loss_g, loss_l2, _,loss_chd, loss_norm = self.sess.run([self.loss_g, self.loss_l2, self.opt_cd_pure,self.loss_chd, self.loss_norm], feed_dict=feed_dict)
+                    if i%1000==0:
+                        print("l2 loss:" + str(loss_l2) + " g_loss:" + str(loss_g) + "loss chamfer:" + str(loss_chd) + " loss norm:" + str(loss_norm))
+
+
+                g_losses.append(loss_g)
+                l2_losses.append(loss_l2)
+                chd_losses.append(loss_chd)
+                norm_losses.append(loss_norm)
+
+
+                save_path  ='cleaned_aefull_wgan_chd_' + str(l) +  '.txt'
+                # np.savetxt(save_path, cleaned_vector)
+                # print("cleaned vecs saved to "+save_path)
+
+                break
             g_losses.append(loss_g)
             l2_losses.append(loss_l2)
             chd_losses.append(loss_chd)
@@ -200,17 +252,18 @@ class LatentGAN(GAN):
 
 
             save_path  ='cleaned_aefull_wgan_chd_' + str(l) +  '.txt'
-            np.savetxt(save_path, cleaned_vector)
-            print("cleaned vecs saved to "+save_path)
+            # np.savetxt(save_path, cleaned_vector)
+            # print("cleaned vecs saved to "+save_path)
 
 
         print("final losses:")
-
+        pdb.set_trace()
         for i,l in enumerate(lc_wt_mat):
-            print(l,"l2", l2_losses[i],"g_loss", g_losses[i],"chd_loss", chd_losses[i], "norm_losses",norm_losses[i])
+            emd_loss = self.sess.run(self.loss_chd, feed_dict={self.masked_cloud: gt})
+            print(l,"l2", l2_losses[i],"g_loss", g_losses[i],"chd_loss", chd_losses[i], "norm_losses",norm_losses[i], "emd_loss", str(emd_loss))
         if True:
             print "reconstructing from lvs"
-            pref = './recon_from_ac/'
+            
             reconstructions = self.sess.run(self.gen_reconstr)
             for i in range(10): #save all 10 outputs
                 write_ply(pref + "airplane_test_wgan_chd"+ str(l)+"_" + str(i) + "_.ply", reconstructions[i, :, :])

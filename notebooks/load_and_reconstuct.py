@@ -19,7 +19,7 @@ import pdb
 top_out_dir = '../data/'          # Use to save Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae/airplane_full_ae'
+experiment_name = 'single_class_ae/airplane_train_ae'
 n_pc_points = 2048                # Number of points per model.
 bneck_size = 128                  # Bottleneck-AE size
 ae_loss = 'emd'                   # Loss to optimize: 'emd' or 'chamfer'
@@ -65,7 +65,7 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/chair/',500)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane/',800)
-ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_full_ae/',600)
+ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airplane_train_ae/',600)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/airplane_full_adv_g/',600)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/',900)
 # ae.restore_model('/home/shubham/latent_3d_points/data/single_class_ae/with_global_with_upsampling/',890)
@@ -123,7 +123,7 @@ else:
 
     reconstructions = ae.decode(lv_batch)
     for i in range(5):
-        write_ply(pref + "airplane_full_wgan_chd0.001_" + str(i) + "_.ply", reconstructions[i, :, :])
+        write_ply(pref + "airplane_test_wgan_chd0.001_" + str(i) + "_.ply", reconstructions[i, :, :])
 
 
 

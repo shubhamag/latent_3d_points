@@ -38,8 +38,8 @@ class LatentGAN(GAN):
                 self.generator_out_zdata = self.generator(self.z_data, self.n_output)
 
             with tf.variable_scope('discriminator') as scope:
-                self.real_prob, self.real_logit = self.discriminator(self.gt_data, scope=scope)
-                self.synthetic_prob, self.synthetic_logit = self.discriminator(self.generator_out, reuse=True, scope=scope)
+                self.real_prob, self.real_logit = self.discriminator(self.gt_data, scope=scope, update_collection=None)
+                self.synthetic_prob, self.synthetic_logit = self.discriminator(self.generator_out, reuse=True, scope=scope, update_collection="NO_OPS")
             ################# WGAN ###########################
             self.loss_d = tf.reduce_mean(self.real_logit) - tf.reduce_mean(self.synthetic_logit)
             self.loss_g = tf.reduce_mean(self.synthetic_logit)

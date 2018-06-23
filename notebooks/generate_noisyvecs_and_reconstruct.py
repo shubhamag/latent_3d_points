@@ -76,11 +76,11 @@ ae.restore_model('/home/swami/deeprl/latent_3d_points/data/single_class_ae/airpl
 
 num_pts_to_mask = 5
 #latent_vec_file = '/home/shubham/latent_3d_points/notebooks/gt_noisy_airplane_full.txt'
-latent_vec_file = '/home/swami/deeprl/latent_3d_points/notebooks/gt_noisy_airplane_train_ae.txt'
+latent_vec_file = '/home/swami/deeprl/latent_3d_points/notebooks/gt_noisy_airplane_test_ae.txt'
 
 
 #class_dir = '/home/shubham/latent_3d_points/notebooks/gt'
-class_dir = '/home/swami/deeprl/latent_3d_points/notebooks/gt_train/'
+class_dir = '/home/swami/deeprl/latent_3d_points/notebooks/gt_test/'
 # class_dir = '/home/swami/deeprl/latent_3d_points/notebooks/gt_test/'
 
 all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
@@ -107,9 +107,9 @@ for j in num_pts_to_mask:
     reconstructions = ae.decode(lv_array)
     pref = './recon_from_ac/'
     for k in range(5):
-        write_ply(pref + "airplane_train_ae_" + str(j) + "_masked_" + str(k) + "_.ply", reconstructions[k, :, :])
-        write_ply(pref + "airplane_train_" + str(j) + "_gt_" + str(k) + "_.ply", x[k, :, :])
-        write_ply(pref + "airplane_train_" + str(j) + "_gtmasked_" + str(k) + "_.ply", x_masked[k, :, :])
+        write_ply(pref + "airplane_test_aerecon_" + str(j) + "_" + str(k) + "_.ply", reconstructions[k, :, :])
+        write_ply(pref + "airplane_test_" + str(j) + "_gt_" + str(k) + "_.ply", x[k, :, :])
+        write_ply(pref + "airplane_test_" + str(j) + "_gtmasked_" + str(k) + "_.ply", x_masked[k, :, :])
 
 
 
@@ -127,7 +127,7 @@ np.savetxt(latent_vec_file,lv_array) #uncomment to save masked lvs
 clean_with_gan_and_reconstruct = True
 if(clean_with_gan_and_reconstruct):
     from latent_3d_points.notebooks.train_latent_gan_clean import GAN_cleaner
-    GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked,ae=ae,num_epochs=40000)
+    GAN_cleaner(latent_vec=latent_codes,masked_cloud = x_masked,ae=ae,gt = feed_pc, num_epochs=40000)
 
 
 
